@@ -37,7 +37,7 @@ export function Footer() {
                 <Github className="size-4" strokeWidth={1.5} />
               </a>
               <a
-                href="mailto:contact@open-share.cn"
+                href="mailto:contact@open-share.com"
                 className="flex size-9 items-center justify-center rounded-lg border border-border bg-card outline-none transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring"
                 aria-label="Email"
               >
@@ -69,7 +69,7 @@ export function Footer() {
             <ul className="space-y-3">
               <li>
                 <a
-                  href="mailto:contact@open-share.cn"
+                  href="mailto:contact@open-share.com"
                   className="text-sm text-muted-foreground transition-colors hover:text-primary"
                 >
                   {t("footer.company.contact")}
@@ -84,14 +84,6 @@ export function Footer() {
             <p className="text-sm text-muted-foreground">
               {t("footer.copyright")}
             </p>
-            <a
-              href="https://beian.miit.gov.cn/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
-              浙ICP备2025189350号
-            </a>
             <p className="text-sm text-muted-foreground">
               {t("footer.slogan")}
             </p>

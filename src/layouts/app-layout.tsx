@@ -14,6 +14,7 @@ import {
   Building2,
   Settings,
   LogOut,
+  LogIn,
   Menu,
   ChevronDown,
   ChevronLeft,
@@ -30,7 +31,15 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { labelKey: 'nav.insight', path: '/insight', icon: <BarChart3 className="size-4" strokeWidth={1.5} /> },
+  {
+    labelKey: 'nav.insight',
+    path: '/insight',
+    icon: <BarChart3 className="size-4" strokeWidth={1.5} />,
+    children: [
+      { labelKey: 'nav.insightOverview', path: '/insight/overview' },
+      { labelKey: 'nav.insightLeaderboard', path: '/insight/open-leaderboard' },
+    ],
+  },
   { labelKey: 'nav.profile', path: '/profile', icon: <User className="size-4" strokeWidth={1.5} /> },
   { labelKey: 'nav.points', path: '/points', icon: <Wallet className="size-4" strokeWidth={1.5} /> },
   { labelKey: 'nav.pointsAllocate', path: '/points/allocate', icon: <HandCoins className="size-4" strokeWidth={1.5} /> },
@@ -51,8 +60,15 @@ const navItems: NavItem[] = [
   },
 ];
 
-export function AppLayout() {
-  const { logout } = useAuth();
+interface AppLayoutProps {
+  publicMode?: boolean;
+}
+
+// 未登录状态下仍可访问的路径（公开路径）
+const PUBLIC_PATHS = new Set<string>(['/insight', '/insight/overview']);
+
+export function AppLayout({ publicMode = false }: AppLayoutProps) {
+  const { logout, isAuthenticated } = useAuth();
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -61,9 +77,10 @@ export function AppLayout() {
     if (typeof window === 'undefined') return false;
     return window.localStorage.getItem('app-sidebar-collapsed') === 'true';
   });
-  const [settingsOpen, setSettingsOpen] = useState(
-    location.pathname.startsWith('/settings')
-  );
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>(() => ({
+    '/settings': location.pathname.startsWith('/settings'),
+    '/insight': location.pathname.startsWith('/insight'),
+  }));
   const [unreadCount, setUnreadCount] = useState(0);
   const [isMainlandCn, setIsMainlandCn] = useState(() => getIsMainlandCn());
 
@@ -102,6 +119,10 @@ export function AppLayout() {
   }, [sidebarCollapsed]);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      setUnreadCount(0);
+      return;
+    }
     const fetchUnread = async () => {
       try {
         const { data } = await api.get<{ count: number }>('/messages/unread-count');
@@ -148,12 +169,20 @@ export function AppLayout() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('messages:unread-changed', handleUnreadChanged);
     };
-  }, [location.pathname]);
+  }, [location.pathname, isAuthenticated]);
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
+
+  // 未登录且目标路径不是公开路径时，跳转到登录页并带上 redirect
+  const resolveNavTo = (path: string) => {
+    if (isAuthenticated || PUBLIC_PATHS.has(path)) return path;
+    return `/login?redirect=${encodeURIComponent(path)}`;
+  };
+
+  void publicMode;
 
   const isActive = (path: string) => {
     if (path === '/settings') return location.pathname.startsWith('/settings');
@@ -234,15 +263,15 @@ export function AppLayout() {
                       onClick={() => {
                         if (collapsed) {
                           setSidebarCollapsed(false);
-                          setSettingsOpen(true);
+                          setOpenMenus((prev) => ({ ...prev, [item.path]: true }));
                           return;
                         }
-                        setSettingsOpen(!settingsOpen);
+                        setOpenMenus((prev) => ({ ...prev, [item.path]: !prev[item.path] }));
                       }}
                       className={navItemClass(active, collapsed)}
                       aria-label={collapsed ? t(item.labelKey) : undefined}
-                      aria-expanded={collapsed ? undefined : settingsOpen}
-                      aria-controls={collapsed ? undefined : 'settings-navigation'}
+                      aria-expanded={collapsed ? undefined : !!openMenus[item.path]}
+                      aria-controls={collapsed ? undefined : `nav-${item.path.replace(/\W+/g, '-')}-children`}
                       title={collapsed ? t(item.labelKey) : undefined}
                     >
                       <span className={`flex min-w-0 flex-1 items-center gap-3 ${collapsed ? 'justify-center' : ''}`}>
@@ -250,19 +279,22 @@ export function AppLayout() {
                         {!collapsed && <span className="truncate">{t(item.labelKey)}</span>}
                       </span>
                       {!collapsed && (
-                        settingsOpen ? (
+                        openMenus[item.path] ? (
                           <ChevronDown className="size-4 shrink-0 text-sidebar-foreground/60" strokeWidth={1.5} />
                         ) : (
                           <ChevronRight className="size-4 shrink-0 text-sidebar-foreground/60" strokeWidth={1.5} />
                         )
                       )}
                     </button>
-                    {settingsOpen && !collapsed && (
-                      <ul id="settings-navigation" className="mt-1.5 space-y-1 rounded-xl border border-sidebar-border/60 bg-sidebar-accent/20 p-1.5">
+                    {openMenus[item.path] && !collapsed && (
+                      <ul
+                        id={`nav-${item.path.replace(/\W+/g, '-')}-children`}
+                        className="mt-1.5 space-y-1 rounded-xl border border-sidebar-border/60 bg-sidebar-accent/20 p-1.5"
+                      >
                         {item.children.map((child) => (
                           <li key={child.path}>
                             <Link
-                              to={child.path}
+                              to={resolveNavTo(child.path)}
                               onClick={() => setSidebarOpen(false)}
                               className={childNavItemClass(location.pathname === child.path)}
                             >
@@ -275,7 +307,7 @@ export function AppLayout() {
                   </div>
                 ) : (
                   <Link
-                    to={item.path}
+                    to={resolveNavTo(item.path)}
                     onClick={() => setSidebarOpen(false)}
                     className={navItemClass(active, collapsed)}
                     aria-label={collapsed ? t(item.labelKey) : undefined}
@@ -301,20 +333,37 @@ export function AppLayout() {
       </nav>
 
       <div className="border-t border-sidebar-border/70 px-3 py-3">
-        <button
-          type="button"
-          onClick={handleLogout}
-          className={`group flex min-h-11 w-full items-center gap-3 rounded-xl border border-transparent px-2.5 py-2 text-sm font-medium text-destructive outline-none transition-[background-color,border-color,color] duration-150 motion-reduce:transition-none hover:border-destructive/30 hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-destructive/30 ${
-            collapsed ? 'justify-center px-2' : ''
-          }`}
-          aria-label={collapsed ? t('nav.logout') : undefined}
-          title={collapsed ? t('nav.logout') : undefined}
-        >
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-destructive/10 text-destructive transition-colors group-hover:bg-destructive/15">
-            <LogOut className="size-4" strokeWidth={1.5} />
-          </span>
-          {!collapsed && <span className="truncate">{t('nav.logout')}</span>}
-        </button>
+        {isAuthenticated ? (
+          <button
+            type="button"
+            onClick={handleLogout}
+            className={`group flex min-h-11 w-full items-center gap-3 rounded-xl border border-transparent px-2.5 py-2 text-sm font-medium text-destructive outline-none transition-[background-color,border-color,color] duration-150 motion-reduce:transition-none hover:border-destructive/30 hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-destructive/30 ${
+              collapsed ? 'justify-center px-2' : ''
+            }`}
+            aria-label={collapsed ? t('nav.logout') : undefined}
+            title={collapsed ? t('nav.logout') : undefined}
+          >
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-destructive/10 text-destructive transition-colors group-hover:bg-destructive/15">
+              <LogOut className="size-4" strokeWidth={1.5} />
+            </span>
+            {!collapsed && <span className="truncate">{t('nav.logout')}</span>}
+          </button>
+        ) : (
+          <Link
+            to="/login"
+            onClick={() => setSidebarOpen(false)}
+            className={`group flex min-h-11 w-full items-center gap-3 rounded-xl border border-sidebar-primary/35 bg-sidebar-primary/10 px-2.5 py-2 text-sm font-medium text-sidebar-primary outline-none transition-[background-color,border-color,color] duration-150 motion-reduce:transition-none hover:bg-sidebar-primary/15 focus-visible:ring-2 focus-visible:ring-sidebar-ring ${
+              collapsed ? 'justify-center px-2' : ''
+            }`}
+            aria-label={collapsed ? t('header.login') : undefined}
+            title={collapsed ? t('header.login') : undefined}
+          >
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary/15 text-sidebar-primary">
+              <LogIn className="size-4" strokeWidth={1.5} />
+            </span>
+            {!collapsed && <span className="truncate">{t('header.login')}</span>}
+          </Link>
+        )}
       </div>
     </div>
   );
@@ -386,7 +435,17 @@ export function AppLayout() {
               <span className="text-primary">Share</span>
             </span>
           </Link>
-          <span className="size-11" aria-hidden="true" />
+          {isAuthenticated ? (
+            <span className="size-11" aria-hidden="true" />
+          ) : (
+            <Link
+              to="/login"
+              className="flex h-11 items-center gap-1.5 rounded-lg border border-sidebar-primary/35 bg-sidebar-primary/10 px-3 text-sm font-medium text-sidebar-primary outline-none transition-colors hover:bg-sidebar-primary/15 focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+            >
+              <LogIn className="size-4" strokeWidth={1.5} />
+              <span>{t('header.login')}</span>
+            </Link>
+          )}
         </header>
 
         {/* Page Content */}

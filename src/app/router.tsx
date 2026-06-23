@@ -1,5 +1,5 @@
 import { lazy, type ReactNode } from 'react';
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/protected-route';
 import { AuthLayout } from '@/layouts/auth-layout';
 import { AppLayout } from '@/layouts/app-layout';
@@ -40,6 +40,7 @@ const PointAllocationPage = lazy(() => import('@/pages/point-allocation'));
 const TalentReachPage = lazy(() => import('@/pages/talent-reach'));
 const InsightPage = lazy(() => import('../pages/insight/index'));
 const InsightDispatcher = lazy(() => import('../pages/insight/insight-dispatcher'));
+const OverviewPage = lazy(() => import('../pages/insight/overview'));
 
 function lazyElement(element: ReactNode) {
   return <LazyElement>{element}</LazyElement>;
@@ -63,6 +64,15 @@ export const router = createBrowserRouter([
         element: <AuthLayout />,
         children: [
           { path: '/login', element: <LoginPage /> },
+        ],
+      },
+
+      // Semi-public pages (with AppLayout but without auth required)
+      {
+        element: <AppLayout publicMode />,
+        children: [
+          { path: '/insight', element: <Navigate to="/insight/overview" replace /> },
+          { path: '/insight/overview', element: lazyElement(<OverviewPage />) },
         ],
       },
 
@@ -91,7 +101,7 @@ export const router = createBrowserRouter([
           { path: '/organizations/:slug/members', element: lazyElement(<OrganizationMembersPage />) },
           { path: '/organizations/:slug/settings', element: lazyElement(<OrganizationSettingsPage />) },
           { path: '/organizations/:slug/transactions', element: lazyElement(<OrganizationTransactionsPage />) },
-          { path: '/insight', element: lazyElement(<InsightPage />) },
+          { path: '/insight/open-leaderboard', element: lazyElement(<InsightPage />) },
           { path: '/insight/*', element: lazyElement(<InsightDispatcher />) },
           { path: '/settings/general', element: lazyElement(<SettingsGeneralPage />) },
           { path: '/settings/addresses', element: lazyElement(<AddressesPage />) },

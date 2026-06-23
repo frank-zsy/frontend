@@ -44,6 +44,8 @@
     "settingsLanguage": "Language",
     "logout": "Sign Out",
     "insight": "Insight",
+    "insightOverview": "Overview",
+    "insightLeaderboard": "OpenLeaderboard",
     "talentReach": "Talent Reach"
   },
   "header": {
@@ -1069,6 +1071,31 @@
     "developerDetailBreadcrumbHome": "Insight",
     "repoVisitExternal": "Visit Repository",
     "repoRelatedLabels": "Related Labels",
-    "detailLabelAllocate": "Allocate Points"
+    "detailLabelAllocate": "Allocate Points",
+    "overview": {
+      "title": "Global Open Source Macro Insight",
+      "loading": "Loading...",
+      "error": "Failed to load data",
+      "noData": "No data available",
+      "loginToView": "Login to view details",
+      "datasets": {
+        "developers": "Developer Count",
+        "contribution": "Developer OpenRank Contribution",
+        "influence": "Project OpenRank Influence"
+      },
+      "map": {
+        "backToWorld": "Back to World Map",
+        "resetZoom": "Reset Zoom",
+        "titlePattern": "{{region}} {{metric}} Heat Map"
+      },
+      "infoBar": {
+        "dataSource": "Data Source",
+        "totalRecords": "Total Records",
+        "totalRepos": "Total Repos",
+        "totalDevelopers": "Total Developers",
+        "totalCountries": "Countries & Regions",
+        "updatedAt": "Last Updated"
+      }
+    }
   }
 }

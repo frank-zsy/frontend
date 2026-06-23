@@ -172,6 +172,71 @@
     @apply py-16 md:py-24;
   }
 
+  /* === Overview Banner（标题栏） === */
+  .overview-banner {
+    position: relative;
+    overflow: hidden;
+    border-radius: 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border));
+    background:
+      radial-gradient(circle at 12% 50%, color-mix(in srgb, var(--primary) 22%, transparent) 0, transparent 18rem),
+      radial-gradient(circle at 88% 50%, color-mix(in srgb, var(--chart-2) 14%, transparent) 0, transparent 16rem),
+      linear-gradient(110deg, color-mix(in srgb, var(--card) 92%, transparent) 0%, color-mix(in srgb, var(--card) 70%, transparent) 100%);
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--foreground) 6%, transparent),
+      0 4px 14px color-mix(in srgb, var(--primary) 8%, transparent);
+  }
+
+  /* 顶部高亮线（增强 Banner 质感） */
+  .overview-banner::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--primary) 55%, transparent) 30%,
+      color-mix(in srgb, var(--primary) 75%, transparent) 50%,
+      color-mix(in srgb, var(--primary) 55%, transparent) 70%,
+      transparent
+    );
+  }
+
+  /* 细网格底纹（科技感） */
+  .overview-banner::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.35;
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--foreground) 6%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb, var(--foreground) 6%, transparent) 1px, transparent 1px);
+    background-size: 28px 28px;
+    mask-image: radial-gradient(ellipse at center, var(--foreground) 0, transparent 80%);
+  }
+
+  .overview-banner > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Banner 标题文字：绿色品牌渐变 */
+  .overview-banner-title {
+    background: linear-gradient(
+      92deg,
+      color-mix(in srgb, var(--foreground) 92%, transparent) 0%,
+      var(--primary) 55%,
+      color-mix(in srgb, var(--foreground) 92%, transparent) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    letter-spacing: 0.01em;
+  }
+
   /* === 深色滚动条 === */
   .dark-scrollbar::-webkit-scrollbar {
     width: 6px;

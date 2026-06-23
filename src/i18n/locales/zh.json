@@ -44,6 +44,8 @@
     "settingsLanguage": "语言设置",
     "logout": "退出登录",
     "insight": "数据洞察",
+    "insightOverview": "全球概览",
+    "insightLeaderboard": "OpenLeaderboard",
     "talentReach": "人才触达"
   },
   "header": {
@@ -1069,6 +1071,31 @@
     "repoRelatedLabels": "相关标签",
     "detailLabelAllocate": "发放积分",
     "developerDetailBackToInsight": "返回数据洞察",
-    "developerDetailBreadcrumbHome": "数据洞察"
+    "developerDetailBreadcrumbHome": "数据洞察",
+    "overview": {
+      "title": "全球开源宏观洞察",
+      "loading": "加载中...",
+      "error": "数据加载失败",
+      "noData": "暂无数据",
+      "loginToView": "登录后查看详情",
+      "datasets": {
+        "developers": "开发者数量",
+        "contribution": "开发者 OpenRank 贡献度",
+        "influence": "开源项目 OpenRank 影响力"
+      },
+      "map": {
+        "backToWorld": "返回世界地图",
+        "resetZoom": "重置缩放",
+        "titlePattern": "{{region}}{{metric}}热力地图"
+      },
+      "infoBar": {
+        "dataSource": "数据来源",
+        "totalRecords": "日志总量",
+        "totalRepos": "仓库总量",
+        "totalDevelopers": "开发者总量",
+        "totalCountries": "覆盖国家与地区",
+        "updatedAt": "数据更新时间"
+      }
+    }
   }
 }
