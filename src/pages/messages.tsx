@@ -127,7 +127,39 @@ const MESSAGE_TYPE_CONFIG: Record<
 
 const PAGE_SIZE = 20;
 
-// ─── Simple Markdown renderer ───────────────────────────
+// ─── Markdown helpers ────────────────────────────────────
+
+/** Strip markdown syntax for plain-text preview (single-line truncated display) */
+function stripMarkdown(text: string): string {
+  return text
+    // headings
+    .replace(/^#{1,6}\s+/gm, "")
+    // bold / italic
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/__(.+?)__/g, "$1")
+    .replace(/_(.+?)_/g, "$1")
+    // strikethrough
+    .replace(/~~(.+?)~~/g, "$1")
+    // inline code
+    .replace(/`(.+?)`/g, "$1")
+    // links [text](url)
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    // images ![alt](url)
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
+    // blockquotes
+    .replace(/^\s*>\s?/gm, "")
+    // unordered list markers
+    .replace(/^\s*[-*+]\s+/gm, "")
+    // ordered list markers
+    .replace(/^\s*\d+\.\s+/gm, "")
+    // horizontal rules
+    .replace(/^[-*_]{3,}\s*$/gm, "")
+    // collapse multiple spaces/newlines
+    .replace(/\n+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
 
 function renderMarkdown(content: string): string {
   const html = content
@@ -561,7 +593,7 @@ export default function MessagesPage() {
                     </span>
                   </div>
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {msg.content_preview}
+                    {stripMarkdown(msg.content_preview)}
                   </p>
                 </div>
 

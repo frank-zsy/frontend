@@ -510,7 +510,11 @@
     "soldOutHint": "该商品已售罄，暂时无法兑换",
     "insufficientHint": "您的积分不足，无法兑换该商品",
     "redeemFailed": "兑换失败，请稍后重试",
-    "loadItemFailed": "加载商品详情失败"
+    "loadItemFailed": "加载商品详情失败",
+    "couponCodeReceived": "兑换码已发放",
+    "couponCode": "兑换码",
+    "checkMessage": "请到站内信查看兑换码详情",
+    "viewMessages": "查看站内信"
   },
   "redemptions": {
     "title": "兑换记录",

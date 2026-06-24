@@ -510,7 +510,11 @@
     "soldOutHint": "This item is sold out and cannot be redeemed",
     "insufficientHint": "You don't have enough points to redeem this item",
     "redeemFailed": "Redemption failed, please try again later",
-    "loadItemFailed": "Failed to load item details"
+    "loadItemFailed": "Failed to load item details",
+    "couponCodeReceived": "Coupon Code Issued",
+    "couponCode": "Coupon Code",
+    "checkMessage": "Please check your messages for the coupon code details",
+    "viewMessages": "View Messages"
   },
   "redemptions": {
     "title": "Redemption History",

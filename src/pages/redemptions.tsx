@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import { ShoppingBag, Package } from 'lucide-react';
 import { format } from 'date-fns';
 import api, { getApiError } from '@/lib/api';
@@ -11,8 +12,10 @@ import { toast } from 'sonner';
 
 interface RedemptionItem {
   id: number;
-  name: string;
-  image_url: string | null;
+  name_zh: string;
+  name_en: string;
+  image_card_url: string | null;
+  image_detail_url: string | null;
 }
 
 interface ShippingAddress {
@@ -24,7 +27,7 @@ interface ShippingAddress {
 interface Redemption {
   id: number;
   item: RedemptionItem;
-  points_cost_at_redemption: number;
+  points_cost: number;
   status: 'COMPLETED' | 'PENDING' | 'CANCELLED';
   shipping_address: ShippingAddress | null;
   created_at: string;
@@ -36,6 +39,11 @@ interface RedemptionsResponse {
   page: number;
   page_size: number;
 }
+
+const getItemName = (item: RedemptionItem): string => {
+  const lang = i18n.language === 'zh' ? 'zh' : 'en';
+  return item[`name_${lang}` as keyof RedemptionItem] as string || item.name_zh || '';
+};
 
 function getStatusBadge(status: Redemption['status'], t: (key: string) => string): { text: string; className: string } {
   switch (status) {
@@ -115,10 +123,10 @@ export default function RedemptionsPage() {
               >
                 {/* 商品缩略图 */}
                 <div className="size-16 shrink-0 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
-                  {redemption.item.image_url ? (
+                  {redemption.item.image_detail_url ? (
                     <img
-                      src={redemption.item.image_url}
-                      alt={redemption.item.name}
+                      src={redemption.item.image_detail_url}
+                      alt={getItemName(redemption.item)}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -129,13 +137,13 @@ export default function RedemptionsPage() {
                 {/* 信息区 */}
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium truncate">{redemption.item.name}</span>
+                    <span className="font-medium truncate">{getItemName(redemption.item)}</span>
                     <Badge variant="outline" className={statusBadge.className}>
                       {statusBadge.text}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-                    <span>{t('redemptions.costPoints', { amount: redemption.points_cost_at_redemption.toLocaleString() })}</span>
+                    <span>{t('redemptions.costPoints', { amount: redemption.points_cost.toLocaleString() })}</span>
                     <span>{format(new Date(redemption.created_at), 'yyyy-MM-dd HH:mm')}</span>
                   </div>
                   {redemption.shipping_address && (

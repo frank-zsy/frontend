@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import { Package, MapPin, ArrowLeft, Tag, CheckCircle } from 'lucide-react';
 import api, { getApiError } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
@@ -49,11 +50,16 @@ interface UserBalance {
 
 interface ShopItemDetail {
   id: number;
-  name: string;
-  description: string;
+  name_zh: string;
+  name_en: string;
+  brief_zh: string;
+  brief_en: string;
+  description_zh: string;
+  description_en: string;
   cost: number;
   stock: number | null;
-  image_url: string | null;
+  image_card_url: string | null;
+  image_detail_url: string | null;
   requires_shipping: boolean;
   allowed_tags: AllowedTag[];
   shipping_addresses: ShippingAddress[] | null;
@@ -70,6 +76,7 @@ interface RedemptionResponse {
   status: string;
   points_cost_at_redemption: number;
   created_at: string;
+  coupon_code: string | null;
 }
 
 function getStockLabel(stock: number | null, t: (key: string, options?: Record<string, unknown>) => string): { text: string; variant: 'default' | 'secondary' | 'destructive' } {
@@ -77,6 +84,13 @@ function getStockLabel(stock: number | null, t: (key: string, options?: Record<s
   if (stock === 0) return { text: t('shop.soldOut'), variant: 'destructive' };
   return { text: t('shop.stock', { count: stock }), variant: 'secondary' };
 }
+
+const getLocalizedField = (item: ShopItemDetail, field: string): string => {
+  const lang = i18n.language === 'zh' ? 'zh' : 'en';
+  const value = item[`${field}_${lang}` as keyof ShopItemDetail] as string;
+  const fallback = item[`${field}_zh` as keyof ShopItemDetail] as string;
+  return value || fallback || '';
+};
 
 export default function ShopItemPage() {
   const { t } = useTranslation();
@@ -87,6 +101,7 @@ export default function ShopItemPage() {
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
   const [redeeming, setRedeeming] = useState(false);
   const [redeemed, setRedeemed] = useState(false);
+  const [couponCode, setCouponCode] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -119,11 +134,15 @@ export default function ShopItemPage() {
     if (!item) return;
     setRedeeming(true);
     try {
-      const payload: { item_id: number; shipping_address_id?: number } = { item_id: item.id };
+      const payload: { item_id: number; shipping_address_id?: number; lang: string } = {
+        item_id: item.id,
+        lang: i18n.language === 'zh' ? 'zh' : 'en',
+      };
       if (item.requires_shipping && selectedAddressId) {
         payload.shipping_address_id = Number(selectedAddressId);
       }
-      await api.post<RedemptionResponse>('/shop/redemptions', payload);
+      const res = await api.post<RedemptionResponse>('/shop/redemptions', payload);
+      setCouponCode(res.data.coupon_code);
       setRedeemed(true);
       toast.success(t('shop.redeemSuccess').replace('！', ''));
     } catch (err) {
@@ -179,8 +198,17 @@ export default function ShopItemPage() {
             <CheckCircle className="size-16 text-green-600 mx-auto" />
             <h2 className="text-2xl font-bold">{t('shop.redeemSuccess')}</h2>
             <p className="text-muted-foreground">
-              {t('shop.redeemSuccessDesc', { cost: item.cost.toLocaleString(), name: item.name })}
+              {t('shop.redeemSuccessDesc', { cost: item.cost.toLocaleString(), name: getLocalizedField(item, 'name') })}
             </p>
+            {couponCode && (
+              <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                <p className="text-sm text-green-600 font-medium">{t('shop.couponCodeReceived')}</p>
+                <p className="mt-2 font-mono text-lg text-center bg-white p-2 rounded border">
+                  {couponCode}
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground">{t('shop.checkMessage')}</p>
+              </div>
+            )}
             <div className="flex items-center justify-center gap-4 pt-4">
               <Button asChild variant="outline">
                 <Link to="/shop">{t('shop.continueShopping')}</Link>
@@ -208,11 +236,11 @@ export default function ShopItemPage() {
       {/* 商品信息 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* 商品大图 */}
-        <div className="aspect-square bg-muted rounded-xl flex items-center justify-center overflow-hidden">
-          {item.image_url ? (
+        <div className="aspect-square max-w-72 bg-muted rounded-xl flex items-center justify-center overflow-hidden mx-auto">
+          {item.image_detail_url ? (
             <img
-              src={item.image_url}
-              alt={item.name}
+              src={item.image_detail_url}
+              alt={getLocalizedField(item, 'name')}
               className="w-full h-full object-cover rounded-xl"
             />
           ) : (
@@ -222,8 +250,8 @@ export default function ShopItemPage() {
 
         {/* 商品详情 */}
         <div className="space-y-4">
-          <h1 className="text-2xl font-bold">{item.name}</h1>
-          <p className="text-muted-foreground">{item.description}</p>
+          <h1 className="text-2xl font-bold">{getLocalizedField(item, 'name')}</h1>
+          <p className="text-muted-foreground">{getLocalizedField(item, 'description')}</p>
 
           <Separator />
 
@@ -329,7 +357,7 @@ export default function ShopItemPage() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>{t('shop.confirmRedeemTitle')}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    {t('shop.confirmRedeemDesc', { cost: item.cost.toLocaleString(), name: item.name })}
+                    {t('shop.confirmRedeemDesc', { cost: item.cost.toLocaleString(), name: getLocalizedField(item, 'name') })}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

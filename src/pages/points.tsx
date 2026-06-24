@@ -5,6 +5,7 @@ import {
   ArrowRightLeft,
   ArrowUpRight,
   ShoppingBag,
+  ClipboardList,
   Send,
   Loader2,
 } from "lucide-react";
@@ -97,6 +98,12 @@ export default function PointsPage() {
                 <Link to="/shop">
                   <ShoppingBag className="size-4" />
                   <span>{t('points.shop')}</span>
+                </Link>
+              </Button>
+              <Button variant="outline" className="min-h-11 justify-start" asChild>
+                <Link to="/redemptions">
+                  <ClipboardList className="size-4" />
+                  <span>{t('redemptions.title')}</span>
                 </Link>
               </Button>
               <Button variant="outline" className="min-h-11 justify-start" asChild>

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import { ShoppingBag, Package, Tag } from 'lucide-react';
 import api, { getApiError } from '@/lib/api';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
-import { Button } from '@/app/components/ui/button';
 import { Skeleton } from '@/app/components/ui/skeleton';
 import { toast } from 'sonner';
 
@@ -16,11 +16,16 @@ interface AllowedTag {
 
 interface ShopItem {
   id: number;
-  name: string;
-  description: string;
+  name_zh: string;
+  name_en: string;
+  brief_zh: string;
+  brief_en: string;
+  description_zh: string;
+  description_en: string;
   cost: number;
   stock: number | null;
-  image_url: string | null;
+  image_card_url: string | null;
+  image_detail_url: string | null;
   requires_shipping: boolean;
   is_active: boolean;
   allowed_tags: AllowedTag[];
@@ -64,6 +69,13 @@ function canAfford(item: ShopItem, balance: UserBalance): boolean {
   }
   return balance.gift >= item.cost;
 }
+
+const getLocalizedField = (item: ShopItem, field: string): string => {
+  const lang = i18n.language === 'zh' ? 'zh' : 'en';
+  const value = item[`${field}_${lang}` as keyof ShopItem] as string;
+  const fallback = item[`${field}_zh` as keyof ShopItem] as string;
+  return value || fallback || '';
+};
 
 export default function ShopPage() {
   const { t } = useTranslation();
@@ -132,13 +144,14 @@ export default function ShopPage() {
             const soldOut = item.stock === 0;
 
             return (
-              <Card key={item.id} className="overflow-hidden flex flex-col">
+              <Link key={item.id} to={`/shop/${item.id}`} className="block">
+              <Card className="overflow-hidden flex flex-col h-full hover:ring-2 hover:ring-primary/20 transition-shadow">
                 {/* 商品图片 */}
                 <div className="aspect-[2/1] bg-muted flex items-center justify-center overflow-hidden">
-                  {item.image_url ? (
+                  {item.image_card_url ? (
                     <img
-                      src={item.image_url}
-                      alt={item.name}
+                      src={item.image_card_url}
+                      alt={getLocalizedField(item, 'name')}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -147,13 +160,13 @@ export default function ShopPage() {
                 </div>
 
                 <CardHeader className="pb-1 pt-3">
-                  <CardTitle className="text-base font-semibold">{item.name}</CardTitle>
+                  <CardTitle className="text-base font-semibold">{getLocalizedField(item, 'name')}</CardTitle>
                 </CardHeader>
 
                 <CardContent className="flex-1 space-y-2 pb-3">
                   {/* 描述 */}
                   <p className="text-sm text-muted-foreground line-clamp-2">
-                    {item.description}
+                    {getLocalizedField(item, 'brief') || getLocalizedField(item, 'description')}
                   </p>
 
                   {/* 积分和库存 */}
@@ -175,20 +188,21 @@ export default function ShopPage() {
 
                 <CardFooter>
                   {soldOut ? (
-                    <Button disabled className="w-full" variant="secondary">
+                    <span className="w-full inline-flex items-center justify-center rounded-md bg-secondary text-secondary-foreground h-10 px-4 text-sm font-medium">
                       {t('shop.soldOut')}
-                    </Button>
+                    </span>
                   ) : !affordable ? (
-                    <Button disabled className="w-full" variant="secondary">
+                    <span className="w-full inline-flex items-center justify-center rounded-md bg-secondary text-secondary-foreground h-10 px-4 text-sm font-medium">
                       {t('shop.insufficientPoints')}
-                    </Button>
+                    </span>
                   ) : (
-                    <Button asChild className="w-full bg-green-600 hover:bg-green-700 text-white">
-                      <Link to={`/shop/${item.id}`}>{t('shop.redeemNow')}</Link>
-                    </Button>
+                    <span className="w-full inline-flex items-center justify-center rounded-md bg-green-600 text-white h-10 px-4 text-sm font-medium">
+                      {t('shop.redeemNow')}
+                    </span>
                   )}
                 </CardFooter>
               </Card>
+              </Link>
             );
           })}
         </div>
