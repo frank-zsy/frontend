@@ -355,7 +355,7 @@ export default function MessagesPage() {
       await api.post("/messages/delete", { message_ids: Array.from(selectedIds) });
       toast.success(t('messages.deleteSuccess'));
       setSelectedIds(new Set());
-      fetchMessages();
+      await fetchMessages();
       fetchUnreadCount();
     } catch (err) {
       toast.error(getApiError(err).message);
@@ -366,7 +366,7 @@ export default function MessagesPage() {
     if (!detailMessage) return;
     try {
       await api.post("/messages/mark-unread", {
-        message_ids: [detailMessage.user_message_id],
+        message_ids: [detailMessage.id],
       });
       toast.success(t('messages.markUnreadSuccess'));
       setDetailOpen(false);
@@ -381,11 +381,11 @@ export default function MessagesPage() {
     if (!detailMessage) return;
     try {
       await api.post("/messages/delete", {
-        message_ids: [detailMessage.user_message_id],
+        message_ids: [detailMessage.id],
       });
       toast.success(t('messages.deleteMessageSuccess'));
       setDetailOpen(false);
-      fetchMessages();
+      await fetchMessages();
       fetchUnreadCount();
     } catch (err) {
       toast.error(getApiError(err).message);
@@ -394,11 +394,11 @@ export default function MessagesPage() {
 
   // ─── Selection helpers ──────────────────────────────
 
-  const toggleSelect = (userMessageId: number) => {
+  const toggleSelect = (messageId: number) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(userMessageId)) next.delete(userMessageId);
-      else next.add(userMessageId);
+      if (next.has(messageId)) next.delete(messageId);
+      else next.add(messageId);
       return next;
     });
   };
@@ -407,7 +407,7 @@ export default function MessagesPage() {
     if (selectedIds.size === messages.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(messages.map((m) => m.user_message_id)));
+      setSelectedIds(new Set(messages.map((m) => m.id)));
     }
   };
 
@@ -566,8 +566,8 @@ export default function MessagesPage() {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <Checkbox
-                    checked={selectedIds.has(msg.user_message_id)}
-                    onCheckedChange={() => toggleSelect(msg.user_message_id)}
+                    checked={selectedIds.has(msg.id)}
+                    onCheckedChange={() => toggleSelect(msg.id)}
                     aria-label={`${t('messages.select')} ${msg.title}`}
                   />
                 </div>
