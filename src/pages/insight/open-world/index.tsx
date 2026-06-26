@@ -5,7 +5,7 @@ import { fetchOverviewDataset, fetchOverviewMeta } from './api'
 import { InfoBar } from './components/InfoBar'
 import { LeaderboardPanel } from './components/LeaderboardPanel'
 import { MetricSelector } from './components/MetricSelector'
-import { OverviewMap } from './components/OverviewMap'
+import { OverviewMap } from './components/OpenWorldMap'
 import { TrendChart } from './components/TrendChart'
 import {
   COUNTRY_META,

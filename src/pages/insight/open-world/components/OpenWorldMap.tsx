@@ -18,13 +18,13 @@ interface OverviewMapProps {
   onBackToWorld: () => void
 }
 
-type EChartsModule = typeof import('./overviewMapEcharts')
+type EChartsModule = typeof import('./openWorldMapEcharts')
 
 let echartsLoader: Promise<EChartsModule> | null = null
 
 function loadECharts(): Promise<EChartsModule> {
   if (!echartsLoader) {
-    echartsLoader = import('./overviewMapEcharts')
+    echartsLoader = import('./openWorldMapEcharts')
   }
   return echartsLoader
 }
@@ -175,6 +175,11 @@ export function OverviewMap({
   const [mapName, setMapName] = useState<string | null>(null)
   const [error, setError] = useState(false)
 
+  // activeMapName: the map currently being rendered (only switches when data is ready)
+  const [activeMapName, setActiveMapName] = useState<string | null>(null)
+  // activeGeoScope: the geoScope corresponding to activeMapName
+  const [activeGeoScope, setActiveGeoScope] = useState<GeoScope>(geoScope)
+
   // Determine which GeoJSON file to load for the current scope
   const geoTarget = useMemo<{ url: string; name: string } | null>(() => {
     if (geoScope === 'world') {
@@ -220,7 +225,20 @@ export function OverviewMap({
     }
   }, [geoTarget])
 
-  const mapItems = useMemo(() => buildMapItems(rows, geoScope, isZh), [rows, geoScope, isZh])
+  // Only switch the actively rendered map when both GeoJSON is ready and data has loaded.
+  // This prevents the map from going gray during drill-down transitions.
+  useEffect(() => {
+    if (!loading && mapName && geoTarget && mapName === geoTarget.name) {
+      setActiveMapName(mapName)
+      setActiveGeoScope(geoScope)
+    }
+  }, [loading, mapName, geoTarget, geoScope])
+
+  // Whether we are in transition (waiting for GeoJSON + data to arrive for new scope)
+  const isTransitioning = geoScope !== activeGeoScope || loading
+
+  // Use activeGeoScope for building map items so the old map keeps its data during transition
+  const mapItems = useMemo(() => buildMapItems(rows, activeGeoScope, isZh), [rows, activeGeoScope, isZh])
 
   const drillCodeSet = useMemo(() => new Set(DRILL_DOWN_COUNTRIES), [])
 
@@ -320,12 +338,12 @@ export function OverviewMap({
               formatter: (params: unknown) => {
                 const p = params as MapClickParams
                 const name = p.name || ''
-                if (geoScope === 'world') {
+                if (activeGeoScope === 'world') {
                   const meta = ALWAYS_LABEL_COUNTRIES[name]
                   if (!meta) return ''
                   return isZh ? meta.zh : (p.data?.displayName || meta.en)
                 }
-                const subMap = ALWAYS_LABEL_SUBDIVISIONS[geoScope]
+                const subMap = ALWAYS_LABEL_SUBDIVISIONS[activeGeoScope]
                 if (!subMap) return ''
                 const meta = subMap[name]
                 if (!meta) return ''
@@ -336,18 +354,18 @@ export function OverviewMap({
         ],
       }
     },
-    [mapItems, metricLabel, geoScope, isZh],
+    [mapItems, metricLabel, activeGeoScope, isZh],
   )
 
   // 重置地图缩放与平移
   const handleReset = useCallback(() => {
-    if (!chartRef.current || !mapName) return
-    chartRef.current.setOption(buildOption(mapName, readThemeColors()), { notMerge: true })
-  }, [buildOption, mapName])
+    if (!chartRef.current || !activeMapName) return
+    chartRef.current.setOption(buildOption(activeMapName, readThemeColors()), { notMerge: true })
+  }, [buildOption, activeMapName])
 
   // Initialize / update the chart instance
   useEffect(() => {
-    if (!echartsReady || !mapName) return
+    if (!echartsReady || !activeMapName) return
     const container = containerRef.current
     if (!container) return
 
@@ -369,7 +387,7 @@ export function OverviewMap({
     const applyOption = () => {
       if (!chartRef.current) return
       const theme = readThemeColors()
-      chartRef.current.setOption(buildOption(mapName, theme), { notMerge: true })
+      chartRef.current.setOption(buildOption(activeMapName, theme), { notMerge: true })
     }
 
     loadECharts()
@@ -411,7 +429,7 @@ export function OverviewMap({
       observer.disconnect()
       chartRef.current?.off('click')
     }
-  }, [echartsReady, mapName, buildOption, drillCodeSet, geoScope, onDrillDown])
+  }, [echartsReady, activeMapName, buildOption, drillCodeSet, geoScope, onDrillDown])
 
   // Dispose chart only when component unmounts
   useEffect(() => {
@@ -422,14 +440,14 @@ export function OverviewMap({
   }, [])
 
   const hasData = mapItems.length > 0
-  const showOverlay = loading || !hasData || error
+  // Only show full overlay for initial load or error; during drill-down transition use spinner
+  const showFullOverlay = (!isTransitioning && !hasData && !loading) || error
+  const showTransitionSpinner = isTransitioning && !error
   const overlayMessage = error
     ? t('insight.overview.error')
-    : loading
-      ? t('insight.overview.loading')
-      : !hasData
-        ? t('insight.overview.noData')
-        : ''
+    : !hasData && !loading
+      ? t('insight.overview.noData')
+      : ''
 
   // 仅用于无障碍 aria-label，避免在 dataset 切换时丢失上下文
   return (
@@ -459,7 +477,23 @@ export function OverviewMap({
           ↻ {t('insight.overview.map.resetZoom')}
         </button>
       )}
-      {showOverlay && (
+      {showTransitionSpinner && (
+        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-2 rounded-lg bg-card/90 px-5 py-4 shadow-lg">
+            <svg
+              className="h-8 w-8 animate-spin text-primary"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <p className="text-xs text-muted-foreground">{t('insight.overview.loading')}</p>
+          </div>
+        </div>
+      )}
+      {showFullOverlay && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <p className="rounded-md bg-card/80 px-4 py-2 text-sm text-muted-foreground">
             {overlayMessage}

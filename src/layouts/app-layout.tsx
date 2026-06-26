@@ -36,7 +36,7 @@ const navItems: NavItem[] = [
     path: '/insight',
     icon: <BarChart3 className="size-4" strokeWidth={1.5} />,
     children: [
-      { labelKey: 'nav.insightOverview', path: '/insight/overview' },
+      { labelKey: 'nav.insightOpenWorld', path: '/insight/open-world' },
       { labelKey: 'nav.insightLeaderboard', path: '/insight/open-leaderboard' },
     ],
   },
@@ -65,7 +65,7 @@ interface AppLayoutProps {
 }
 
 // 未登录状态下仍可访问的路径（公开路径）
-const PUBLIC_PATHS = new Set<string>(['/insight', '/insight/overview']);
+const PUBLIC_PATHS = new Set<string>(['/insight', '/insight/open-world']);
 
 export function AppLayout({ publicMode = false }: AppLayoutProps) {
   const { logout, isAuthenticated } = useAuth();

@@ -38,9 +38,12 @@ const WithdrawalAccountsPage = lazy(() => import('@/pages/withdrawal-accounts'))
 const AccountMergePage = lazy(() => import('@/pages/account-merge'));
 const PointAllocationPage = lazy(() => import('@/pages/point-allocation'));
 const TalentReachPage = lazy(() => import('@/pages/talent-reach'));
+const TalentReachComposePage = lazy(() => import('../pages/talent-reach-compose'));
+const TalentReachSendPage = lazy(() => import('../pages/talent-reach-send'));
+const TalentReachDetailPage = lazy(() => import('../pages/talent-reach-detail'));
 const InsightPage = lazy(() => import('../pages/insight/index'));
 const InsightDispatcher = lazy(() => import('../pages/insight/insight-dispatcher'));
-const OverviewPage = lazy(() => import('../pages/insight/overview'));
+const OverviewPage = lazy(() => import('../pages/insight/open-world'));
 
 function lazyElement(element: ReactNode) {
   return <LazyElement>{element}</LazyElement>;
@@ -71,8 +74,8 @@ export const router = createBrowserRouter([
       {
         element: <AppLayout publicMode />,
         children: [
-          { path: '/insight', element: <Navigate to="/insight/overview" replace /> },
-          { path: '/insight/overview', element: lazyElement(<OverviewPage />) },
+          { path: '/insight', element: <Navigate to="/insight/open-world" replace /> },
+          { path: '/insight/open-world', element: lazyElement(<OverviewPage />) },
         ],
       },
 
@@ -95,6 +98,9 @@ export const router = createBrowserRouter([
           { path: '/redemptions', element: lazyElement(<RedemptionsPage />) },
           { path: '/messages', element: lazyElement(<MessagesPage />) },
           { path: '/talent-reach', element: lazyElement(<TalentReachPage />) },
+          { path: '/talent-reach/compose', element: lazyElement(<TalentReachComposePage />) },
+          { path: '/talent-reach/send/:draftId', element: lazyElement(<TalentReachSendPage />) },
+          { path: '/talent-reach/history/:id', element: lazyElement(<TalentReachDetailPage />) },
           { path: '/organizations', element: lazyElement(<OrganizationsPage />) },
           { path: '/organizations/create', element: lazyElement(<OrganizationCreatePage />) },
           { path: '/organizations/:slug', element: lazyElement(<OrganizationDetailPage />) },

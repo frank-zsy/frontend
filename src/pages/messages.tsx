@@ -24,6 +24,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  Radar,
+  Gift,
 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
@@ -67,7 +69,8 @@ type MessageType =
   | "points"
   | "order"
   | "security"
-  | "withdrawal";
+  | "withdrawal"
+  | "outreach";
 
 interface Sender {
   id: number;
@@ -86,6 +89,9 @@ interface MessageItem {
   received_at: string;
   created_at: string;
   content_preview: string;
+  reward_amount?: number;
+  title_zh?: string;
+  content_preview_zh?: string;
 }
 
 interface MessageDetail {
@@ -99,6 +105,10 @@ interface MessageDetail {
   read_at: string | null;
   received_at: string;
   created_at: string;
+  reward_amount?: number;
+  reward_point_type?: string;
+  title_zh?: string;
+  content_zh?: string;
 }
 
 interface MessageListResponse {
@@ -124,6 +134,7 @@ const MESSAGE_TYPE_CONFIG: Record<
   order: { labelKey: "messages.order", icon: ShoppingBag, color: "text-sky-500" },
   security: { labelKey: "messages.security", icon: Shield, color: "text-red-500" },
   withdrawal: { labelKey: "messages.withdrawal", icon: Banknote, color: "text-green-500" },
+  outreach: { labelKey: "messages.outreach", icon: Radar, color: "text-emerald-600" },
 };
 
 const PAGE_SIZE = 20;
@@ -297,11 +308,20 @@ export default function MessagesPage() {
       setDetailMessage(data);
       // Auto mark read
       if (!msg.is_read) {
-        await api.post(`/messages/${msg.id}/mark-read`);
+        const res = await api.post<{ reward?: { reward_amount: number; point_type: string } }>(`/messages/${msg.id}/mark-read`);
         setMessages((prev) =>
           prev.map((m) => (m.id === msg.id ? { ...m, is_read: true } : m))
         );
         fetchUnreadCount();
+        // Show reward toast if present and update detail with reward info
+        if (res.data?.reward) {
+          setDetailMessage((prev) =>
+            prev ? { ...prev, reward_amount: res.data.reward!.reward_amount, reward_point_type: res.data.reward!.point_type } : prev
+          );
+          toast.success(
+            t("messages.outreachRewardReceived", { amount: res.data.reward.reward_amount })
+          );
+        }
       }
     } catch (err) {
       toast.error(getApiError(err).message);
@@ -588,11 +608,17 @@ export default function MessagesPage() {
                         !msg.is_read ? "font-semibold" : ""
                       }`}
                     >
-                      {msg.title}
+                      {i18n.language === "zh" && msg.title_zh ? msg.title_zh : msg.title}
                     </span>
+                    {msg.message_type === "outreach" && msg.reward_amount && (
+                      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
+                        <Gift className="size-3" />
+                        {msg.reward_amount} {t("talentReach.points")}
+                      </span>
+                    )}
                   </div>
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {stripMarkdown(msg.content_preview)}
+                    {stripMarkdown(i18n.language === "zh" && msg.content_preview_zh ? msg.content_preview_zh : msg.content_preview)}
                   </p>
                 </div>
 
@@ -647,7 +673,9 @@ export default function MessagesPage() {
         <SheetContent className="overflow-y-auto sm:max-w-lg">
           <SheetHeader>
             <SheetTitle className="pr-8">
-              {detailMessage?.title ?? t('messages.detailTitle')}
+              {detailMessage
+                ? (i18n.language === "zh" && detailMessage.title_zh ? detailMessage.title_zh : detailMessage.title)
+                : t('messages.detailTitle')}
             </SheetTitle>
           </SheetHeader>
 
@@ -672,6 +700,16 @@ export default function MessagesPage() {
                 )}
               </div>
 
+              {/* Outreach reward info */}
+              {detailMessage.message_type === "outreach" && detailMessage.reward_amount && (
+                <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-lg dark:bg-emerald-950/30">
+                  <Gift className="h-5 w-5 text-emerald-600" />
+                  <span className="text-sm text-emerald-700 dark:text-emerald-400">
+                    {t("messages.outreachReward", { amount: detailMessage.reward_amount })}
+                  </span>
+                </div>
+              )}
+
               <div className="text-xs text-muted-foreground">
                 {formatTime(detailMessage.received_at)}
                 {detailMessage.read_at && (
@@ -685,7 +723,11 @@ export default function MessagesPage() {
 
               {/* Content */}
               <div className={MARKDOWN_PROSE_CLASS}>
-                <ReactMarkdown>{detailMessage.content}</ReactMarkdown>
+                <ReactMarkdown>
+                  {i18n.language === "zh" && detailMessage.content_zh
+                    ? detailMessage.content_zh
+                    : detailMessage.content}
+                </ReactMarkdown>
               </div>
 
               <Separator />
