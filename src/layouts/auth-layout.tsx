@@ -1,5 +1,4 @@
 import { Link, Outlet } from 'react-router-dom';
-import { Logo } from '@/app/components/logo';
 
 export function AuthLayout() {
   return (
@@ -8,13 +7,9 @@ export function AuthLayout() {
         <div className="flex flex-col items-center">
           <Link
             to="/"
-            className="flex items-center gap-2 rounded-lg px-3 py-2 outline-none transition-colors hover:bg-secondary/55 focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex items-center rounded-lg px-3 py-2 outline-none transition-colors hover:bg-secondary/55 focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <Logo className="size-8" />
-            <span className="text-xl font-semibold leading-none">
-              <span className="text-sky-400">Open</span>
-              <span className="text-primary">Share</span>
-            </span>
+            <img src="/logo-with-text.png" alt="OpenShare" className="h-8" draggable={false} />
           </Link>
         </div>
         <div className="rounded-2xl border border-border bg-card/95 p-6 shadow-[inset_0_1px_0_rgba(226,232,240,0.08)] sm:p-8">

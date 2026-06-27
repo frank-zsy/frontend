@@ -1,6 +1,5 @@
 import { Github, Mail } from "lucide-react";
 import { useLanguage } from "@/app/contexts/language-context";
-import { Logo } from "@/app/components/logo";
 
 export function Footer() {
   const { t } = useLanguage();
@@ -16,12 +15,8 @@ export function Footer() {
         <div className="mb-12 grid gap-10 md:grid-cols-3">
           {/* Brand */}
           <div className="md:col-span-1">
-            <div className="mb-4 flex items-center gap-2">
-              <Logo className="size-8" />
-              <span className="text-lg font-semibold leading-none">
-                <span className="text-chart-2">Open</span>
-                <span className="text-primary">Share</span>
-              </span>
+            <div className="mb-4 flex items-center">
+              <img src="/logo-with-text.png" alt="OpenShare" className="h-8" draggable={false} />
             </div>
             <p className="mb-6 max-w-sm text-sm text-muted-foreground">
               {t("footer.description")}

@@ -2,7 +2,6 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { BarChart3, Menu, Radar, Wallet } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/app/components/ui/button";
-import { Logo } from "@/app/components/logo";
 import { LanguageToggle } from "@/app/components/language-toggle";
 import { ThemeToggle } from "@/app/components/theme-toggle";
 import { useLanguage } from "@/app/contexts/language-context";
@@ -42,13 +41,14 @@ export function Header() {
         <div className="flex items-center justify-between">
           <Link
             to="/"
-            className="flex items-center gap-2 rounded-lg px-2 py-1.5 outline-none transition-colors hover:bg-secondary/55 focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex items-center rounded-lg px-2 py-1.5 outline-none transition-colors hover:bg-secondary/55 focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <Logo className="size-8" />
-            <span className="text-[15px] font-semibold leading-none">
-              <span className="text-chart-2">Open</span>
-              <span className="text-primary">Share</span>
-            </span>
+            <img
+              src="/logo-with-text.png"
+              alt="OpenShare"
+              className="h-8"
+              draggable={false}
+            />
           </Link>
 
           <div className="flex items-center gap-2">

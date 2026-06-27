@@ -1,7 +1,6 @@
 import { LogIn, User, type LucideIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/app/components/ui/button";
-import { Logo } from "@/app/components/logo";
 import {
   Sheet,
   SheetClose,
@@ -41,12 +40,8 @@ export function MobileMenuSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-[min(88vw,22rem)] px-0 pb-5 pt-[env(safe-area-inset-top)]">
         <SheetHeader className="border-b border-border px-5 py-4 text-left">
-          <SheetTitle className="flex items-center gap-2 text-sm">
-            <Logo className="size-7" />
-            <span>
-              <span className="text-chart-2">Open</span>
-              <span className="text-primary">Share</span>
-            </span>
+          <SheetTitle className="flex items-center text-sm">
+            <img src="/logo-with-text.png" alt="OpenShare" className="h-7" draggable={false} />
           </SheetTitle>
         </SheetHeader>
 

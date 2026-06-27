@@ -2,7 +2,6 @@ import { useEffect, useState, useMemo } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/auth-context';
-import { Logo } from '@/app/components/logo';
 import { getIsMainlandCn, hasGeoStored, storeIsMainlandCn } from '@/lib/geo';
 import api from '@/lib/api';
 import {
@@ -229,21 +228,15 @@ export function AppLayout({ publicMode = false }: AppLayoutProps) {
           to="/"
           onClick={() => setSidebarOpen(false)}
           className={`flex min-w-0 items-center rounded-xl bg-sidebar outline-none transition-[background-color,box-shadow] duration-150 motion-reduce:transition-none hover:bg-sidebar-accent/45 focus-visible:ring-2 focus-visible:ring-sidebar-ring ${
-            collapsed ? 'mx-auto size-12 justify-center p-0' : 'gap-3 px-3 py-3'
+            collapsed ? 'mx-auto size-12 justify-center p-0' : 'px-3 py-3'
           }`}
           aria-label="OpenShare"
           title={collapsed ? 'OpenShare' : undefined}
         >
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-sidebar">
-            <Logo className="size-8 object-contain" />
-          </span>
-          {!collapsed && (
-            <span className="min-w-0">
-              <span className="block truncate text-lg font-semibold leading-tight">
-                <span className="text-chart-2">Open</span>
-                <span className="text-primary">Share</span>
-              </span>
-            </span>
+          {collapsed ? (
+            <img src="/logo.png" alt="OpenShare" className="size-8 object-contain" draggable={false} />
+          ) : (
+            <img src="/logo-with-text.png" alt="OpenShare" className="h-8" draggable={false} />
           )}
         </Link>
       </div>
@@ -427,13 +420,9 @@ export function AppLayout({ publicMode = false }: AppLayoutProps) {
           </button>
           <Link
             to="/"
-            className="flex items-center gap-2 rounded-lg px-2 py-1.5 outline-none transition-colors hover:bg-secondary/55 focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex items-center rounded-lg px-2 py-1.5 outline-none transition-colors hover:bg-secondary/55 focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <Logo className="size-7" />
-            <span className="text-[15px] font-semibold leading-none">
-              <span className="text-chart-2">Open</span>
-              <span className="text-primary">Share</span>
-            </span>
+            <img src="/logo-with-text.png" alt="OpenShare" className="h-7" draggable={false} />
           </Link>
           {isAuthenticated ? (
             <span className="size-11" aria-hidden="true" />
