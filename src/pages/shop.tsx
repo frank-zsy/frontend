@@ -57,7 +57,7 @@ interface ShopResponse {
 function getStockLabel(stock: number | null, t: (key: string, options?: Record<string, unknown>) => string): { text: string; variant: 'default' | 'secondary' | 'destructive' } {
   if (stock === null) return { text: t('shop.stockSufficient'), variant: 'secondary' };
   if (stock === 0) return { text: t('shop.soldOut'), variant: 'destructive' };
-  return { text: t('shop.stock', { count: stock }), variant: 'secondary' };
+  return { text: t('shop.stockSufficient'), variant: 'secondary' };
 }
 
 function canAfford(item: ShopItem, balance: UserBalance): boolean {

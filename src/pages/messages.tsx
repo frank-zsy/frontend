@@ -26,6 +26,7 @@ import {
   Loader2,
   Radar,
   Gift,
+  ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
@@ -38,12 +39,6 @@ import {
   SelectItem,
 } from "@/app/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/app/components/ui/sheet";
 import { Separator } from "@/app/components/ui/separator";
 import {
   AlertDialog,
@@ -208,7 +203,7 @@ export default function MessagesPage() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
-  const [detailOpen, setDetailOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "detail">("list");
   const [detailMessage, setDetailMessage] = useState<MessageDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
@@ -301,7 +296,7 @@ export default function MessagesPage() {
   // ─── Actions ────────────────────────────────────────
 
   const openDetail = async (msg: MessageItem) => {
-    setDetailOpen(true);
+    setViewMode("detail");
     setDetailLoading(true);
     try {
       const { data } = await api.get<MessageDetail>(`/messages/${msg.id}`);
@@ -325,7 +320,7 @@ export default function MessagesPage() {
       }
     } catch (err) {
       toast.error(getApiError(err).message);
-      setDetailOpen(false);
+      setViewMode("list");
     } finally {
       setDetailLoading(false);
     }
@@ -381,21 +376,6 @@ export default function MessagesPage() {
     }
   };
 
-  const handleDetailMarkUnread = async () => {
-    if (!detailMessage) return;
-    try {
-      await api.post("/messages/mark-unread", {
-        message_ids: [detailMessage.id],
-      });
-      toast.success(t('messages.markUnreadSuccess'));
-      setDetailOpen(false);
-      fetchMessages();
-      fetchUnreadCount();
-    } catch (err) {
-      toast.error(getApiError(err).message);
-    }
-  };
-
   const handleDetailDelete = async () => {
     if (!detailMessage) return;
     try {
@@ -403,7 +383,7 @@ export default function MessagesPage() {
         message_ids: [detailMessage.id],
       });
       toast.success(t('messages.deleteMessageSuccess'));
-      setDetailOpen(false);
+      setViewMode("list");
       await fetchMessages();
       fetchUnreadCount();
     } catch (err) {
@@ -454,6 +434,110 @@ export default function MessagesPage() {
 
   // ─── JSX ────────────────────────────────────────────
 
+  // Detail full-page view
+  if (viewMode === "detail") {
+    return (
+      <div className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
+        {/* Back button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setViewMode("list")}
+          className="gap-1.5"
+        >
+          <ArrowLeft className="size-4" />
+          {t('messages.backToList')}
+        </Button>
+
+        {detailLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : detailMessage ? (
+          <div className="space-y-6">
+            {/* Title */}
+            <h1 className="text-2xl font-bold">
+              {i18n.language === "zh" && detailMessage.title_zh
+                ? detailMessage.title_zh
+                : detailMessage.title}
+            </h1>
+
+            {/* Meta info */}
+            <div className="flex flex-wrap items-center gap-3">
+              <Badge variant="secondary">
+                <TypeIcon type={detailMessage.message_type} />
+                <span className="ml-1">
+                  {t(MESSAGE_TYPE_CONFIG[detailMessage.message_type]?.labelKey ?? '')}
+                </span>
+              </Badge>
+              {detailMessage.sender && (
+                <span className="text-sm text-muted-foreground">
+                  {t('messages.from', { username: detailMessage.sender.username })}
+                </span>
+              )}
+              <span className="text-sm text-muted-foreground">
+                {formatTime(detailMessage.received_at)}
+              </span>
+              {detailMessage.read_at && (
+                <span className="text-sm text-muted-foreground">
+                  {t('messages.readAt', { time: formatTime(detailMessage.read_at) })}
+                </span>
+              )}
+              <div className="ml-auto">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="sm" className="text-destructive">
+                      <Trash2 className="mr-1.5 size-4" />
+                      {t('common.delete')}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t('messages.confirmDeleteTitle')}</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {t('messages.confirmDeleteSingle')}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDetailDelete}>
+                        {t('messages.confirmDelete')}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </div>
+
+            {/* Outreach reward info */}
+            {detailMessage.message_type === "outreach" && detailMessage.reward_amount && (
+              <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-lg dark:bg-emerald-950/30">
+                <Gift className="h-5 w-5 text-emerald-600" />
+                <span className="text-sm text-emerald-700 dark:text-emerald-400">
+                  {t("messages.outreachReward", { amount: detailMessage.reward_amount })}
+                </span>
+              </div>
+            )}
+
+            <Separator />
+
+            {/* Content */}
+            <div className={MARKDOWN_PROSE_CLASS}>
+              <ReactMarkdown>
+                {i18n.language === "zh" && detailMessage.content_zh
+                  ? detailMessage.content_zh
+                  : detailMessage.content}
+              </ReactMarkdown>
+            </div>
+
+
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  // List view
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
       {/* Header */}
@@ -668,104 +752,6 @@ export default function MessagesPage() {
         </div>
       )}
 
-      {/* Detail Sheet */}
-      <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
-        <SheetContent className="overflow-y-auto sm:max-w-lg">
-          <SheetHeader>
-            <SheetTitle className="pr-8">
-              {detailMessage
-                ? (i18n.language === "zh" && detailMessage.title_zh ? detailMessage.title_zh : detailMessage.title)
-                : t('messages.detailTitle')}
-            </SheetTitle>
-          </SheetHeader>
-
-          {detailLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="size-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : detailMessage ? (
-            <div className="flex flex-col gap-4 px-4 pb-4">
-              {/* Meta info */}
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="secondary">
-                  <TypeIcon type={detailMessage.message_type} />
-                  <span className="ml-1">
-                    {t(MESSAGE_TYPE_CONFIG[detailMessage.message_type]?.labelKey ?? '')}
-                  </span>
-                </Badge>
-                {detailMessage.sender && (
-                  <span className="text-sm text-muted-foreground">
-                    {t('messages.from', { username: detailMessage.sender.username })}
-                  </span>
-                )}
-              </div>
-
-              {/* Outreach reward info */}
-              {detailMessage.message_type === "outreach" && detailMessage.reward_amount && (
-                <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-lg dark:bg-emerald-950/30">
-                  <Gift className="h-5 w-5 text-emerald-600" />
-                  <span className="text-sm text-emerald-700 dark:text-emerald-400">
-                    {t("messages.outreachReward", { amount: detailMessage.reward_amount })}
-                  </span>
-                </div>
-              )}
-
-              <div className="text-xs text-muted-foreground">
-                {formatTime(detailMessage.received_at)}
-                {detailMessage.read_at && (
-                  <span className="ml-3">
-                    {t('messages.readAt', { time: formatTime(detailMessage.read_at) })}
-                  </span>
-                )}
-              </div>
-
-              <Separator />
-
-              {/* Content */}
-              <div className={MARKDOWN_PROSE_CLASS}>
-                <ReactMarkdown>
-                  {i18n.language === "zh" && detailMessage.content_zh
-                    ? detailMessage.content_zh
-                    : detailMessage.content}
-                </ReactMarkdown>
-              </div>
-
-              <Separator />
-
-              {/* Actions */}
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={handleDetailMarkUnread}>
-                  <MailX className="mr-1.5 size-4" />
-                  {t('messages.markUnread')}
-                </Button>
-
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="text-destructive">
-                      <Trash2 className="mr-1.5 size-4" />
-                      {t('common.delete')}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>{t('messages.confirmDeleteTitle')}</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        {t('messages.confirmDeleteSingle')}
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleDetailDelete}>
-                        {t('messages.confirmDelete')}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </div>
-          ) : null}
-        </SheetContent>
-      </Sheet>
     </div>
   );
 }

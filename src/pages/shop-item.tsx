@@ -83,7 +83,7 @@ interface RedemptionResponse {
 function getStockLabel(stock: number | null, t: (key: string, options?: Record<string, unknown>) => string): { text: string; variant: 'default' | 'secondary' | 'destructive' } {
   if (stock === null) return { text: t('shop.stockSufficient'), variant: 'secondary' };
   if (stock === 0) return { text: t('shop.soldOut'), variant: 'destructive' };
-  return { text: t('shop.stock', { count: stock }), variant: 'secondary' };
+  return { text: t('shop.stockSufficient'), variant: 'secondary' };
 }
 
 const getLocalizedField = (item: ShopItemDetail, field: string): string => {
@@ -223,7 +223,7 @@ export default function ShopItemPage() {
             {couponCode && (
               <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
                 <p className="text-sm text-green-600 font-medium">{t('shop.couponCodeReceived')}</p>
-                <p className="mt-2 font-mono text-lg text-center bg-white p-2 rounded border">
+                <p className="mt-2 font-mono text-lg text-center bg-white p-2 rounded border text-gray-900">
                   {couponCode}
                 </p>
                 <p className="mt-2 text-sm text-muted-foreground">{t('shop.checkMessage')}</p>

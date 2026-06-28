@@ -574,7 +574,8 @@
       "outreach": "Talent Outreach"
     },
     "outreachReward": "Reading reward: {{amount}} points",
-    "outreachRewardReceived": "Received {{amount}} points reading reward"
+    "outreachRewardReceived": "Received {{amount}} points reading reward",
+    "backToList": "Back"
   },
   "talentReach": {
     "title": "Talent Outreach",

@@ -574,7 +574,8 @@
       "outreach": "人才触达"
     },
     "outreachReward": "阅读奖励: {{amount}} 积分",
-    "outreachRewardReceived": "已获得 {{amount}} 积分阅读奖励"
+    "outreachRewardReceived": "已获得 {{amount}} 积分阅读奖励",
+    "backToList": "返回"
   },
   "talentReach": {
     "title": "人才触达",
