@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import ReactMarkdown from 'react-markdown';
 import i18n from '@/i18n';
 import { Package, MapPin, ArrowLeft, Tag, CheckCircle } from 'lucide-react';
 import api, { getApiError } from '@/lib/api';
@@ -91,6 +92,25 @@ const getLocalizedField = (item: ShopItemDetail, field: string): string => {
   const fallback = item[`${field}_zh` as keyof ShopItemDetail] as string;
   return value || fallback || '';
 };
+
+/** Tailwind v4 arbitrary-variant styles for ReactMarkdown rendered content */
+const MARKDOWN_PROSE_CLASS =
+  "max-w-none text-sm leading-relaxed text-muted-foreground " +
+  "[&_h1]:text-xl [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2 " +
+  "[&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mt-4 [&_h2]:mb-2 " +
+  "[&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2 " +
+  "[&_p]:my-2 [&_p]:leading-relaxed " +
+  "[&_strong]:font-semibold [&_em]:italic " +
+  "[&_a]:text-primary [&_a]:underline [&_a]:hover:text-primary/80 " +
+  "[&_img]:max-w-full [&_img]:rounded-md [&_img]:my-2 " +
+  "[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2 " +
+  "[&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-2 " +
+  "[&_li]:my-1 [&_li]:leading-relaxed " +
+  "[&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-4 [&_blockquote]:text-muted-foreground [&_blockquote]:my-2 " +
+  "[&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-sm " +
+  "[&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-muted [&_pre]:p-3 [&_pre]:my-2 " +
+  "[&_hr]:my-4 [&_hr]:border-border " +
+  "[&_table]:my-2 [&_table]:w-full [&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-border [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_th]:font-semibold";
 
 export default function ShopItemPage() {
   const { t } = useTranslation();
@@ -251,7 +271,9 @@ export default function ShopItemPage() {
         {/* 商品详情 */}
         <div className="space-y-4">
           <h1 className="text-2xl font-bold">{getLocalizedField(item, 'name')}</h1>
-          <p className="text-muted-foreground">{getLocalizedField(item, 'description')}</p>
+          <div className={MARKDOWN_PROSE_CLASS}>
+            <ReactMarkdown>{getLocalizedField(item, 'description')}</ReactMarkdown>
+          </div>
 
           <Separator />
 

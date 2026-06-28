@@ -163,14 +163,14 @@ export default function ShopPage() {
                   <CardTitle className="text-base font-semibold">{getLocalizedField(item, 'name')}</CardTitle>
                 </CardHeader>
 
-                <CardContent className="flex-1 space-y-2 pb-3">
-                  {/* 描述 */}
-                  <p className="text-sm text-muted-foreground line-clamp-2">
+                <CardContent className="flex-1 flex flex-col pb-3">
+                  {/* 描述 - 固定两行高度 */}
+                  <p className="text-sm text-muted-foreground line-clamp-2 min-h-[2.5rem]">
                     {getLocalizedField(item, 'brief') || getLocalizedField(item, 'description')}
                   </p>
 
                   {/* 积分和库存 */}
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mt-2">
                     <span className="text-lg font-bold text-primary">
                       {item.cost.toLocaleString()} {t('shop.points')}
                     </span>
@@ -179,7 +179,7 @@ export default function ShopPage() {
 
                   {/* 标签限制 */}
                   {item.allowed_tags.length > 0 && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
                       <Tag className="size-3" />
                       <span>{t('shop.tagOnly', { tags: item.allowed_tags.map(tg => tg.name).join('、') })}</span>
                     </div>
