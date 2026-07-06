@@ -35,8 +35,13 @@ export function InfoBar({ summary }: InfoBarProps) {
             href="https://open-digger.cn"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm font-medium text-primary hover:underline"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
           >
+            <img
+              src="https://oss.open-digger.cn/logos/communities/xlab/open_digger.png"
+              alt="OpenDigger"
+              className="h-4 w-4 object-contain"
+            />
             {summary.dataSource}
           </a>
         </div>

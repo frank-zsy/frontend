@@ -183,29 +183,24 @@ export function LeaderboardTable({ leaderboard, isZh, loading, onRowClick }: Lea
                       // 英文模式下不显示国家信息，避免文字过长截断
                       const isCountryCol = f0 === 'country' || f0 === 'country_zh'
                       if (isCountryCol) {
-                        if (!isZh) return null
                         const rawCountry = readField(row, 'country')
                         const countryFlagSrc = flagUrlFromCountryName(rawCountry)
-                        const displayText = stripFlagEmoji(text)
+                        if (!countryFlagSrc) return null
                         return (
                           <span
                             key={`${col.name}-${idx}`}
-                            className="flex min-w-0 items-center gap-1.5 text-muted-foreground"
+                            className="flex shrink-0 items-center"
                           >
-                            {countryFlagSrc && (
-                              <img
-                                src={countryFlagSrc}
-                                alt=""
-                                onError={handleFlagError}
-                                className="h-[18px] w-6 shrink-0 bg-secondary object-cover"
-                                style={{ borderRadius: 2 }}
-                                loading="lazy"
-                                referrerPolicy="no-referrer"
-                              />
-                            )}
-                            <span className="min-w-0 truncate text-left text-xs">
-                              {displayText}
-                            </span>
+                            <img
+                              src={countryFlagSrc}
+                              alt={stripFlagEmoji(readField(row, isZh ? 'country_zh' : 'country') || rawCountry)}
+                              title={stripFlagEmoji(readField(row, isZh ? 'country_zh' : 'country') || rawCountry)}
+                              onError={handleFlagError}
+                              className="h-[14px] w-5 shrink-0 bg-secondary object-cover"
+                              style={{ borderRadius: 2 }}
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                            />
                           </span>
                         )
                       }

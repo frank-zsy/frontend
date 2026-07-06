@@ -41,6 +41,17 @@ function withAlpha(color: string, alpha: number): string {
   return color
 }
 
+/** Format Y-axis value into compact abbreviated form (K/M/B) */
+function formatAxisValue(value: number | string): string {
+  const num = typeof value === 'string' ? parseFloat(value) : value
+  if (!isFinite(num)) return '0'
+  const abs = Math.abs(num)
+  if (abs >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}B`
+  if (abs >= 1_000_000) return `${(num / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`
+  if (abs >= 1_000) return `${(num / 1_000).toFixed(1).replace(/\.0$/, '')}K`
+  return String(Math.round(num))
+}
+
 function buildOption(trend: TrendItem, seriesName: string, compact: boolean): EChartsOption {
   const primary = readThemeColor('--chart-1', '#22C55E')
   const muted = readThemeColor('--muted-foreground', '#64748B')
@@ -80,10 +91,19 @@ function buildOption(trend: TrendItem, seriesName: string, compact: boolean): EC
     },
     yAxis: {
       type: 'value',
+      splitNumber: 4,
       axisLine: { show: false },
       axisTick: { show: false },
-      axisLabel: { show: !compact, color: muted, fontSize: 11 },
-      splitLine: { show: !compact, lineStyle: { color: withAlpha(border, 0.3) } },
+      axisLabel: {
+        show: true,
+        color: muted,
+        fontSize: compact ? 9 : 11,
+        formatter: (value: number | string) => formatAxisValue(value),
+      },
+      splitLine: {
+        show: true,
+        lineStyle: { color: withAlpha(border, 0.3), type: 'dashed' },
+      },
     },
     series: [
       {
