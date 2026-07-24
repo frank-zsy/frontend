@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
-import { ShoppingBag, Package, Tag } from 'lucide-react';
+import { ShoppingBag, Package, Tag, ClipboardList } from 'lucide-react';
 import api, { getApiError } from '@/lib/api';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
@@ -125,9 +125,18 @@ export default function ShopPage() {
           <ShoppingBag className="size-6" />
           {t('shop.title')}
         </h1>
-        <Badge variant="secondary" className="text-sm px-3 py-1">
-          {t('shop.myGiftPoints', { amount: user_balance.gift.toLocaleString() })}
-        </Badge>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/redemptions"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ClipboardList className="size-4" />
+            {t('redemptions.title')}
+          </Link>
+          <Badge variant="secondary" className="text-sm px-3 py-1">
+            {t('shop.myGiftPoints', { amount: user_balance.gift.toLocaleString() })}
+          </Badge>
+        </div>
       </div>
 
       {/* 商品网格 */}

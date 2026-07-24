@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,6 +11,8 @@ import {
   Pencil,
   Trash2,
   ArrowLeft,
+  ChevronsUpDown,
+  Check,
 } from 'lucide-react';
 import api, { getApiError } from '@/lib/api';
 import { Button } from '@/app/components/ui/button';
@@ -35,6 +37,24 @@ import {
   FormMessage,
 } from '@/app/components/ui/form';
 import { Badge } from '@/app/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/ui/popover';
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from '@/app/components/ui/command';
+import { cn } from '@/app/components/ui/utils';
+import {
+  getCountries,
+  getSubdivisions,
+  getCities,
+  type GeoCountry,
+  type GeoSubdivision,
+  type GeoCity,
+} from '@/services/geo-data';
 
 // --- Types ---
 interface WorkExperience {
@@ -59,18 +79,25 @@ interface ProfileData {
   bio: string;
   birth_date: string | null;
   company: string;
-  location: string;
+  location_country_id: string;
+  location_subdivision_id: string;
+  location_city_name?: string;
 }
 
 export default function ProfileEditPage() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  // Derive locale for geo data
+  const locale = i18n.language.startsWith('zh') ? 'zh' : 'en';
 
   const profileSchema = z.object({
     bio: z.string().max(500, t('profileEdit.bioMax')),
     birth_date: z.string(),
     company: z.string().max(100, t('profileEdit.companyMax')),
-    location: z.string().max(100, t('profileEdit.locationMax')),
+    location_country_id: z.string(),
+    location_subdivision_id: z.string(),
+    location_city_name: z.string(),
   });
 
   type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -100,6 +127,17 @@ export default function ProfileEditPage() {
   const [workExperiences, setWorkExperiences] = useState<WorkExperience[]>([]);
   const [educations, setEducations] = useState<Education[]>([]);
 
+  // Geo selector states
+  const [countries, setCountries] = useState<GeoCountry[]>([]);
+  const [subdivisions, setSubdivisions] = useState<GeoSubdivision[]>([]);
+  const [cities, setCities] = useState<GeoCity[]>([]);
+  const [countriesLoading, setCountriesLoading] = useState(false);
+  const [subdivisionsLoading, setSubdivisionsLoading] = useState(false);
+  const [citiesLoading, setCitiesLoading] = useState(false);
+  const [countryOpen, setCountryOpen] = useState(false);
+  const [subdivisionOpen, setSubdivisionOpen] = useState(false);
+  const [cityOpen, setCityOpen] = useState(false);
+
   // Dialog states
   const [workDialogOpen, setWorkDialogOpen] = useState(false);
   const [eduDialogOpen, setEduDialogOpen] = useState(false);
@@ -115,7 +153,9 @@ export default function ProfileEditPage() {
       bio: '',
       birth_date: '',
       company: '',
-      location: '',
+      location_country_id: '',
+      location_subdivision_id: '',
+      location_city_name: '',
     },
   });
 
@@ -141,23 +181,85 @@ export default function ProfileEditPage() {
     },
   });
 
+  // Load subdivisions when country changes
+  const loadSubdivisions = useCallback(async (countryId: string) => {
+    if (!countryId) {
+      setSubdivisions([]);
+      return;
+    }
+    setSubdivisionsLoading(true);
+    try {
+      const subs = await getSubdivisions(countryId, locale);
+      setSubdivisions(subs);
+    } catch {
+      setSubdivisions([]);
+    } finally {
+      setSubdivisionsLoading(false);
+    }
+  }, [locale]);
+
+  // Load cities when subdivision changes
+  const loadCities = useCallback(async (countryId: string, subdivisionId: string) => {
+    if (!countryId || !subdivisionId) {
+      setCities([]);
+      return;
+    }
+    setCitiesLoading(true);
+    try {
+      const cityList = await getCities(countryId, subdivisionId, locale);
+      setCities(cityList);
+    } catch {
+      setCities([]);
+    } finally {
+      setCitiesLoading(false);
+    }
+  }, [locale]);
+
   useEffect(() => {
     async function loadData() {
       try {
+        // Load profile data from backend APIs
         const [profileRes, workExpRes, eduRes] = await Promise.all([
           api.get('/me/profile'),
           api.get('/me/work-experiences'),
           api.get('/me/educations'),
         ]);
+
         const profile: ProfileData = profileRes.data.profile;
         form.reset({
           bio: profile.bio || '',
           birth_date: profile.birth_date ? profile.birth_date.slice(0, 7) : '',
           company: profile.company || '',
-          location: profile.location || '',
+          location_country_id: profile.location_country_id || '',
+          location_subdivision_id: profile.location_subdivision_id || '',
+          location_city_name: profile.location_city_name || '',
         });
+
         setWorkExperiences(workExpRes.data.items || []);
         setEducations(eduRes.data.items || []);
+
+        // Load geo data separately so failures don't block profile rendering
+        setCountriesLoading(true);
+        try {
+          const countriesList = await getCountries(locale);
+          setCountries(countriesList);
+
+          // Load subdivisions if user already has a country selected
+          if (profile.location_country_id) {
+            const subs = await getSubdivisions(profile.location_country_id, locale);
+            setSubdivisions(subs);
+
+            // Load cities if user already has a subdivision selected
+            if (profile.location_subdivision_id) {
+              const cityList = await getCities(profile.location_country_id, profile.location_subdivision_id, locale);
+              setCities(cityList);
+            }
+          }
+        } catch {
+          // Geo data is non-critical; page remains usable without it
+        } finally {
+          setCountriesLoading(false);
+        }
       } catch (error) {
         const apiError = getApiError(error);
         toast.error(apiError.message || t('profileEdit.loadFailed'));
@@ -171,9 +273,14 @@ export default function ProfileEditPage() {
   async function onSaveProfile(values: ProfileFormValues) {
     setSaving(true);
     try {
-      const payload: Record<string, string | null> = { ...values };
-      if (!payload.birth_date) payload.birth_date = null;
-      else payload.birth_date = payload.birth_date + '-01';
+      const payload: Record<string, string | null> = {
+        bio: values.bio,
+        birth_date: values.birth_date ? values.birth_date + '-01' : null,
+        company: values.company,
+        location_country_id: values.location_country_id || '',
+        location_subdivision_id: values.location_subdivision_id || '',
+        location_city_name: values.location_city_name || '',
+      };
       await api.patch('/me/profile', payload);
       toast.success(t('profileEdit.profileUpdated'));
       navigate('/profile');
@@ -365,19 +472,232 @@ export default function ProfileEditPage() {
                     </FormItem>
                   )}
                 />
+              </div>
+
+              {/* Location: Country + Subdivision selectors */}
+              <div className="grid gap-4 sm:grid-cols-2">
                 <FormField
                   control={form.control}
-                  name="location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('profileEdit.location')}</FormLabel>
-                      <FormControl>
-                        <Input placeholder={t('profileEdit.locationPlaceholder')} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  name="location_country_id"
+                  render={({ field }) => {
+                    const selectedCountry = countries.find(c => c.id === field.value);
+                    const displayName = selectedCountry
+                      ? (locale === 'zh' ? selectedCountry.name_zh : selectedCountry.name)
+                      : '';
+                    return (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>{t('profileEdit.country')}</FormLabel>
+                        <Popover open={countryOpen} onOpenChange={setCountryOpen}>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={countryOpen}
+                                className={cn(
+                                  'w-full justify-between font-normal',
+                                  !field.value && 'text-muted-foreground'
+                                )}
+                              >
+                                {countriesLoading
+                                  ? t('profileEdit.loadingGeo')
+                                  : displayName || t('profileEdit.countryPlaceholder')}
+                                <ChevronsUpDown className="ml-auto size-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                            <Command>
+                              <CommandInput placeholder={t('profileEdit.countrySearch')} />
+                              <CommandList>
+                                <CommandEmpty>{t('profileEdit.countryEmpty')}</CommandEmpty>
+                                <CommandGroup>
+                                  {countries.map((country) => {
+                                    const label = locale === 'zh' ? country.name_zh : country.name;
+                                    return (
+                                      <CommandItem
+                                        key={country.id}
+                                        value={label}
+                                        onSelect={() => {
+                                          const newValue = country.id === field.value ? '' : country.id;
+                                          field.onChange(newValue);
+                                          // Clear subdivision and city when country changes
+                                          form.setValue('location_subdivision_id', '');
+                                          form.setValue('location_city_name', '');
+                                          setSubdivisions([]);
+                                          setCities([]);
+                                          if (newValue) {
+                                            loadSubdivisions(newValue);
+                                          }
+                                          setCountryOpen(false);
+                                        }}
+                                      >
+                                        <Check
+                                          className={cn(
+                                            'size-4',
+                                            field.value === country.id ? 'opacity-100' : 'opacity-0'
+                                          )}
+                                        />
+                                        {label}
+                                      </CommandItem>
+                                    );
+                                  })}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
+
+                {/* Subdivision selector: only shown when country has subdivisions */}
+                {(subdivisions.length > 0 || subdivisionsLoading) && (
+                  <FormField
+                    control={form.control}
+                    name="location_subdivision_id"
+                    render={({ field }) => {
+                      const selectedSub = subdivisions.find(s => s.id === field.value);
+                      const displayName = selectedSub
+                        ? (locale === 'zh' ? selectedSub.name_zh : selectedSub.name)
+                        : '';
+                      return (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>{t('profileEdit.subdivision')}</FormLabel>
+                          <Popover open={subdivisionOpen} onOpenChange={setSubdivisionOpen}>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  aria-expanded={subdivisionOpen}
+                                  className={cn(
+                                    'w-full justify-between font-normal',
+                                    !field.value && 'text-muted-foreground'
+                                  )}
+                                >
+                                  {subdivisionsLoading
+                                    ? t('profileEdit.loadingGeo')
+                                    : displayName || t('profileEdit.subdivisionPlaceholder')}
+                                  <ChevronsUpDown className="ml-auto size-4 shrink-0 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                              <Command>
+                                <CommandInput placeholder={t('profileEdit.subdivisionSearch')} />
+                                <CommandList>
+                                  <CommandEmpty>{t('profileEdit.subdivisionEmpty')}</CommandEmpty>
+                                  <CommandGroup>
+                                    {subdivisions.map((sub) => {
+                                      const label = locale === 'zh' ? sub.name_zh : sub.name;
+                                      return (
+                                        <CommandItem
+                                          key={sub.id}
+                                          value={label}
+                                          onSelect={() => {
+                                            const newValue = sub.id === field.value ? '' : sub.id;
+                                            field.onChange(newValue);
+                                            // Clear city and reload when subdivision changes
+                                            form.setValue('location_city_name', '');
+                                            setCities([]);
+                                            if (newValue) {
+                                              loadCities(form.getValues('location_country_id'), newValue);
+                                            }
+                                            setSubdivisionOpen(false);
+                                          }}
+                                        >
+                                          <Check
+                                            className={cn(
+                                              'size-4',
+                                              field.value === sub.id ? 'opacity-100' : 'opacity-0'
+                                            )}
+                                          />
+                                          {label}
+                                        </CommandItem>
+                                      );
+                                    })}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
+                  />
+                )}
+
+                {/* City selector: only shown when selected subdivision has cities */}
+                {(cities.length > 0 || citiesLoading) && (
+                  <FormField
+                    control={form.control}
+                    name="location_city_name"
+                    render={({ field }) => {
+                      return (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>{t('profileEdit.city')}</FormLabel>
+                          <Popover open={cityOpen} onOpenChange={setCityOpen}>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  aria-expanded={cityOpen}
+                                  className={cn(
+                                    'w-full justify-between font-normal',
+                                    !field.value && 'text-muted-foreground'
+                                  )}
+                                >
+                                  {citiesLoading
+                                    ? t('profileEdit.loadingGeo')
+                                    : field.value || t('profileEdit.cityPlaceholder')}
+                                  <ChevronsUpDown className="ml-auto size-4 shrink-0 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                              <Command>
+                                <CommandInput placeholder={t('profileEdit.citySearch')} />
+                                <CommandList>
+                                  <CommandEmpty>{t('profileEdit.cityEmpty')}</CommandEmpty>
+                                  <CommandGroup>
+                                    {cities.map((city) => {
+                                      const label = city.name_zh;
+                                      return (
+                                        <CommandItem
+                                          key={label}
+                                          value={label}
+                                          onSelect={() => {
+                                            const newValue = label === field.value ? '' : label;
+                                            field.onChange(newValue);
+                                            setCityOpen(false);
+                                          }}
+                                        >
+                                          <Check
+                                            className={cn(
+                                              'size-4',
+                                              field.value === label ? 'opacity-100' : 'opacity-0'
+                                            )}
+                                          />
+                                          {label}
+                                        </CommandItem>
+                                      );
+                                    })}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
+                  />
+                )}
               </div>
             </CardContent>
           </Card>

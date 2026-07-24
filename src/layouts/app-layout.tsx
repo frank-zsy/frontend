@@ -7,7 +7,6 @@ import api from '@/lib/api';
 import {
   User,
   Wallet,
-  HandCoins,
   ShoppingBag,
   MessageSquare,
   Building2,
@@ -41,7 +40,6 @@ const navItems: NavItem[] = [
   },
   { labelKey: 'nav.profile', path: '/profile', icon: <User className="size-4" strokeWidth={1.5} /> },
   { labelKey: 'nav.points', path: '/points', icon: <Wallet className="size-4" strokeWidth={1.5} /> },
-  { labelKey: 'nav.pointsAllocate', path: '/points/allocate', icon: <HandCoins className="size-4" strokeWidth={1.5} /> },
   { labelKey: 'nav.shop', path: '/shop', icon: <ShoppingBag className="size-4" strokeWidth={1.5} /> },
   { labelKey: 'nav.organizations', path: '/organizations', icon: <Building2 className="size-4" strokeWidth={1.5} /> },
   { labelKey: 'nav.messages', path: '/messages', icon: <MessageSquare className="size-4" strokeWidth={1.5} /> },

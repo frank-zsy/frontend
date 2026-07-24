@@ -64,64 +64,54 @@ export default function PointsPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0 space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-balance">{t('points.title')}</h1>
-          <p className="max-w-2xl text-sm leading-6 text-foreground/70 text-pretty">{t('points.subtitle')}</p>
-        </div>
-        <Button variant="outline" className="min-h-11 w-full sm:w-auto" asChild>
-          <Link to="/points/transactions">
-            <ArrowRightLeft className="size-4" />
-            <span>{t('points.transactions')}</span>
-          </Link>
-        </Button>
+      <div className="min-w-0 space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-balance">{t('points.title')}</h1>
+        <p className="max-w-2xl text-sm leading-6 text-foreground/70 text-pretty">{t('points.subtitle')}</p>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <PointsBalanceCard balance={balance} />
+      <PointsBalanceCard balance={balance} />
 
-        <Card className="lg:sticky lg:top-6 lg:self-start">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">{t('points.operations')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-2">
-              {isMainlandCn && (
-                <Button variant="outline" className="min-h-11 justify-start" asChild>
-                  <Link to="/points/withdrawals">
-                    <ArrowUpRight className="size-4" />
-                    <span>{t('points.withdrawRequest')}</span>
-                  </Link>
-                </Button>
-              )}
-              <Button variant="outline" className="min-h-11 justify-start" asChild>
-                <Link to="/shop">
-                  <ShoppingBag className="size-4" />
-                  <span>{t('points.shop')}</span>
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">{t('points.operations')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {isMainlandCn && (
+              <Button variant="outline" className="min-h-11 flex-1 justify-center sm:min-w-[10rem]" asChild>
+                <Link to="/points/withdrawals">
+                  <ArrowUpRight className="size-4" />
+                  <span>{t('points.withdrawRequest')}</span>
                 </Link>
               </Button>
-              <Button variant="outline" className="min-h-11 justify-start" asChild>
-                <Link to="/redemptions">
-                  <ClipboardList className="size-4" />
-                  <span>{t('redemptions.title')}</span>
-                </Link>
-              </Button>
-              <Button variant="outline" className="min-h-11 justify-start" asChild>
-                <Link to="/points/allocate">
-                  <Send className="size-4" />
-                  <span>{t('points.allocatePoints')}</span>
-                </Link>
-              </Button>
-              <Button variant="outline" className="min-h-11 justify-start" asChild>
-                <Link to="/points/transactions">
-                  <ArrowRightLeft className="size-4" />
-                  <span>{t('points.transactions')}</span>
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            )}
+            <Button variant="outline" className="min-h-11 flex-1 justify-center sm:min-w-[10rem]" asChild>
+              <Link to="/shop">
+                <ShoppingBag className="size-4" />
+                <span>{t('points.shop')}</span>
+              </Link>
+            </Button>
+            <Button variant="outline" className="min-h-11 flex-1 justify-center sm:min-w-[10rem]" asChild>
+              <Link to="/redemptions">
+                <ClipboardList className="size-4" />
+                <span>{t('redemptions.title')}</span>
+              </Link>
+            </Button>
+            <Button variant="outline" className="min-h-11 flex-1 justify-center sm:min-w-[10rem]" asChild>
+              <Link to="/points/allocate">
+                <Send className="size-4" />
+                <span>{t('points.allocatePoints')}</span>
+              </Link>
+            </Button>
+            <Button variant="outline" className="min-h-11 flex-1 justify-center sm:min-w-[10rem]" asChild>
+              <Link to="/points/transactions">
+                <ArrowRightLeft className="size-4" />
+                <span>{t('points.transactions')}</span>
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import {
   type LucideIcon,
-  User,
   Mail,
   Calendar,
   MapPin,
@@ -25,6 +24,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import api, { getApiError } from '@/lib/api';
+import { getLocationLabel } from '@/services/geo-data';
 import { inferDeveloperAvatarUrl } from '@/pages/insight/domain/repoPlatform';
 import { Card, CardHeader, CardTitle, CardContent } from '@/app/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar';
@@ -57,7 +57,9 @@ interface Profile {
   bio: string;
   birth_date: string | null;
   company: string;
-  location: string;
+  location_country_id: string;
+  location_subdivision_id: string;
+  location_city_name?: string;
 }
 
 interface SocialConnectionItem {
@@ -196,8 +198,10 @@ interface ProfileData {
 }
 
 export default function ProfilePage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language.startsWith('zh') ? 'zh' : 'en';
   const [data, setData] = useState<ProfileData | null>(null);
+  const [locationLabel, setLocationLabel] = useState('');
   const [workExperiences, setWorkExperiences] = useState<WorkExperience[]>([]);
   const [educations, setEducations] = useState<Education[]>([]);
   const [socialConnections, setSocialConnections] = useState<SocialConnectionItem[]>([]);
@@ -268,6 +272,31 @@ export default function ProfilePage() {
   useEffect(() => {
     void loadProfile();
   }, [loadProfile]);
+
+  // Resolve the stored location IDs into a localized "Country / Subdivision / City" label.
+  useEffect(() => {
+    const profile = data?.profile;
+    if (!profile?.location_country_id) {
+      setLocationLabel('');
+      return;
+    }
+    let cancelled = false;
+    getLocationLabel(
+      profile.location_country_id,
+      profile.location_subdivision_id,
+      profile.location_city_name || '',
+      locale,
+    )
+      .then((label) => {
+        if (!cancelled) setLocationLabel(label);
+      })
+      .catch(() => {
+        if (!cancelled) setLocationLabel('');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [data, locale]);
 
   const socialAvatarUrl = useMemo(() => {
     const priority = ['github', 'atomgit'];
@@ -362,13 +391,18 @@ export default function ProfilePage() {
           label: profile.company,
         }
       : null,
-    profile.location
+    locationLabel
       ? {
           key: 'location',
           icon: MapPin,
-          label: profile.location,
+          label: locationLabel,
         }
       : null,
+  ].filter(Boolean) as { key: string; icon: LucideIcon; label: string }[];
+
+  // Bio section shows the same facts plus the birth date (header bar omits it).
+  const bioFacts = [
+    ...profileFacts,
     profile.birth_date && formatMonth(profile.birth_date)
       ? {
           key: 'birthday',
@@ -573,7 +607,6 @@ export default function ProfilePage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight text-balance">{t('profile.title')}</h1>
-          <p className="max-w-2xl text-sm leading-6 text-foreground/70 text-pretty">{t('profile.basicInfo')}</p>
         </div>
         <Button asChild className="min-h-11 w-full sm:w-auto">
           <Link to="/profile/edit">
@@ -604,34 +637,37 @@ export default function ProfilePage() {
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0 space-y-4">
-                <div className="min-w-0 space-y-1">
+                <div className="min-w-0 space-y-2">
                   <p className="truncate text-2xl font-semibold tracking-tight text-foreground sm:text-3xl" title={user.username}>
                     {user.username}
                   </p>
+                  {profile.bio ? (
+                    <p className="max-w-2xl text-sm leading-6 text-foreground/80 text-pretty break-words">
+                      {profile.bio}
+                    </p>
+                  ) : null}
                   <div className="flex min-w-0 items-center gap-2 text-sm text-foreground/65">
                     <Mail className="size-4 shrink-0" aria-hidden="true" />
                     <span className="truncate" title={user.email}>{user.email}</span>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2 text-xs text-foreground/70">
-                  <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 font-medium text-primary">
-                    <User className="size-3.5 shrink-0" aria-hidden="true" />
-                    <span className="truncate">{user.username}</span>
-                  </span>
-                  {profileFacts.map((fact) => {
-                    const Icon = fact.icon;
-                    return (
-                      <span
-                        key={fact.key}
-                        className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-border bg-secondary/55 px-2.5 py-1"
-                        title={fact.label}
-                      >
-                        <Icon className="size-3.5 shrink-0" aria-hidden="true" />
-                        <span className="truncate">{fact.label}</span>
-                      </span>
-                    );
-                  })}
-                </div>
+                {bioFacts.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 text-xs text-foreground/70">
+                    {bioFacts.map((fact) => {
+                      const Icon = fact.icon;
+                      return (
+                        <span
+                          key={fact.key}
+                          className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-border bg-secondary/55 px-2.5 py-1"
+                          title={fact.label}
+                        >
+                          <Icon className="size-3.5 shrink-0" aria-hidden="true" />
+                          <span className="truncate">{fact.label}</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </div>
             </div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
@@ -674,45 +710,6 @@ export default function ProfilePage() {
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_23rem]">
         <div className="space-y-5">
-          <Card className="bg-card/90">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                <span className="flex size-8 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
-                  <User className="size-4" aria-hidden="true" />
-                </span>
-                {t('profile.bio')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              {profile.bio ? (
-                <p className="max-w-3xl leading-7 text-foreground/85 text-pretty break-words">
-                  {profile.bio}
-                </p>
-              ) : null}
-              {profileFacts.length > 0 ? (
-                <div className="grid gap-3 sm:grid-cols-3">
-                  {profileFacts.map((fact) => {
-                    const Icon = fact.icon;
-                    return (
-                      <div
-                        key={fact.key}
-                        className="flex min-w-0 items-start gap-3 rounded-lg border border-border bg-secondary/30 p-3 text-foreground/70"
-                      >
-                        <Icon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
-                        <span className="break-words">{fact.label}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : null}
-              {!profile.bio && profileFacts.length === 0 && (
-                <div className="rounded-lg border border-dashed border-border bg-secondary/20 p-4">
-                  <p className="text-sm text-muted-foreground italic">{t('profile.noBio')}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base font-semibold">

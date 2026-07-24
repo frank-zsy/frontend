@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
@@ -7,7 +7,9 @@ import {
   Search,
   Loader2,
   X,
+  Check,
   CheckCircle,
+  ChevronsUpDown,
   Send,
   AlertTriangle,
   Users,
@@ -36,7 +38,21 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/app/components/ui/alert-dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/app/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/app/components/ui/command";
 import { toast } from "sonner";
+import { getCountries, type GeoCountry, type GeoSubdivision } from "@/services/geo-data";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -104,7 +120,7 @@ const MARKDOWN_PROSE_CLASS =
 export default function TalentReachSendPage() {
   const { draftId } = useParams<{ draftId: string }>();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   // Draft
   const [draft, setDraft] = useState<DraftDetail | null>(null);
@@ -122,10 +138,12 @@ export default function TalentReachSendPage() {
   const [languageSearchQuery, setLanguageSearchQuery] = useState("");
 
   // Location
-  const [countryInput, setCountryInput] = useState("");
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
-  const [regionInput, setRegionInput] = useState("");
   const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
+  const [countries, setCountries] = useState<GeoCountry[]>([]);
+  const [geoLoading, setGeoLoading] = useState(true);
+  const [countryPopoverOpen, setCountryPopoverOpen] = useState(false);
+  const [regionPopoverOpen, setRegionPopoverOpen] = useState(false);
 
   // Preview
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -160,6 +178,51 @@ export default function TalentReachSendPage() {
     selectedPool !== null &&
     !insufficientBalance &&
     previewResult.reachable_users > 0;
+
+  // ─── Locale helper ──────────────────────────────────────
+
+  const locale = i18n.language?.startsWith("zh") ? "zh" : "en";
+
+  // ─── Compute available subdivisions based on selected countries ───
+
+  const availableSubdivisions = useMemo(() => {
+    if (!countries.length) return [];
+    const source =
+      selectedCountries.length > 0
+        ? countries.filter((c) => selectedCountries.includes(c.id))
+        : countries;
+    const subs: (GeoSubdivision & { countryName: string })[] = [];
+    for (const c of source) {
+      const countryName = locale === "zh" ? c.name_zh : c.name;
+      for (const s of c.subdivisions || []) {
+        subs.push({ ...s, countryName });
+      }
+    }
+    // Sort by locale. Some subdivisions lack a Chinese name (name_zh),
+    // so fall back to the English name to avoid comparing undefined.
+    const collatorLocale = locale === "zh" ? "zh-Hans-CN" : "en";
+    return subs.sort((a, b) => {
+      const nameA = (locale === "zh" ? a.name_zh : a.name) || a.name || a.name_zh || "";
+      const nameB = (locale === "zh" ? b.name_zh : b.name) || b.name || b.name_zh || "";
+      return nameA.localeCompare(nameB, collatorLocale);
+    });
+  }, [countries, selectedCountries, locale]);
+
+  // ─── Load geo data ──────────────────────────────────────
+
+  useEffect(() => {
+    async function fetchGeoData() {
+      try {
+        const data = await getCountries(locale);
+        setCountries(data);
+      } catch {
+        // silent – geo data is optional enhancement
+      } finally {
+        setGeoLoading(false);
+      }
+    }
+    fetchGeoData();
+  }, [locale]);
 
   // ─── Load draft ────────────────────────────────────────
 
@@ -239,33 +302,39 @@ export default function TalentReachSendPage() {
 
   // ─── Handlers ──────────────────────────────────────────
 
-  const handleAddCountry = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter" && countryInput.trim()) {
-        e.preventDefault();
-        const val = countryInput.trim();
-        if (!selectedCountries.includes(val)) {
-          setSelectedCountries((prev) => [...prev, val]);
+  const toggleCountry = useCallback(
+    (countryId: string) => {
+      setSelectedCountries((prev) => {
+        const next = prev.includes(countryId)
+          ? prev.filter((id) => id !== countryId)
+          : [...prev, countryId];
+        // Clear regions that no longer belong to selected countries
+        if (next.length > 0) {
+          setSelectedRegions((rPrev) =>
+            rPrev.filter((rId) =>
+              countries.some(
+                (c) =>
+                  next.includes(c.id) &&
+                  (c.subdivisions || []).some((s) => s.id === rId)
+              )
+            )
+          );
         }
-        setCountryInput("");
-      }
+        return next;
+      });
+      setPreviewResult(null);
     },
-    [countryInput, selectedCountries]
+    [countries]
   );
 
-  const handleAddRegion = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter" && regionInput.trim()) {
-        e.preventDefault();
-        const val = regionInput.trim();
-        if (!selectedRegions.includes(val)) {
-          setSelectedRegions((prev) => [...prev, val]);
-        }
-        setRegionInput("");
-      }
-    },
-    [regionInput, selectedRegions]
-  );
+  const toggleRegion = useCallback((regionId: string) => {
+    setSelectedRegions((prev) =>
+      prev.includes(regionId)
+        ? prev.filter((id) => id !== regionId)
+        : [...prev, regionId]
+    );
+    setPreviewResult(null);
+  }, []);
 
   const handlePreview = async () => {
     if (!canQuery) return;
@@ -564,34 +633,86 @@ export default function TalentReachSendPage() {
               <Label className="text-sm text-muted-foreground">
                 {t("talentReach.countryLabel", { defaultValue: "国家" })}
               </Label>
-              <Input
-                placeholder={t("talentReach.countryPlaceholder", {
-                  defaultValue: "输入国家名称，按 Enter 添加",
-                })}
-                value={countryInput}
-                onChange={(e) => setCountryInput(e.target.value)}
-                onKeyDown={handleAddCountry}
-              />
+              <Popover open={countryPopoverOpen} onOpenChange={setCountryPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={countryPopoverOpen}
+                    className="w-full justify-between font-normal"
+                    disabled={geoLoading}
+                  >
+                    <span className="truncate text-muted-foreground">
+                      {geoLoading
+                        ? t("common.loading", { defaultValue: "加载中..." })
+                        : t("talentReach.countryPlaceholder", {
+                            defaultValue: "选择国家...",
+                          })}
+                    </span>
+                    <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput
+                      placeholder={t("talentReach.searchCountryPlaceholder", {
+                        defaultValue: "搜索国家...",
+                      })}
+                    />
+                    <CommandList>
+                      <CommandEmpty>
+                        {t("common.noResults", { defaultValue: "无匹配结果" })}
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {countries.map((country) => {
+                          const label = locale === "zh" ? country.name_zh : country.name;
+                          const isSelected = selectedCountries.includes(country.id);
+                          return (
+                            <CommandItem
+                              key={country.id}
+                              value={label}
+                              onSelect={() => toggleCountry(country.id)}
+                            >
+                              <Check
+                                className={`size-4 ${isSelected ? "opacity-100" : "opacity-0"}`}
+                              />
+                              {label}
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               {selectedCountries.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {selectedCountries.map((c) => (
-                    <Badge
-                      key={c}
-                      variant="secondary"
-                      className="flex items-center gap-1 px-2.5 py-1"
-                    >
-                      <span className="text-sm">{c}</span>
-                      <button
-                        type="button"
-                        className="ml-0.5 inline-flex size-4 items-center justify-center rounded-full hover:bg-muted-foreground/20"
-                        onClick={() =>
-                          setSelectedCountries((prev) => prev.filter((x) => x !== c))
-                        }
+                  {selectedCountries.map((cId) => {
+                    const country = countries.find((c) => c.id === cId);
+                    const label = country
+                      ? locale === "zh"
+                        ? country.name_zh
+                        : country.name
+                      : cId;
+                    return (
+                      <Badge
+                        key={cId}
+                        variant="secondary"
+                        className="flex items-center gap-1 px-2.5 py-1"
                       >
-                        <X className="size-3" />
-                      </button>
-                    </Badge>
-                  ))}
+                        <span className="text-sm">{label}</span>
+                        <button
+                          type="button"
+                          className="ml-0.5 inline-flex size-4 items-center justify-center rounded-full hover:bg-muted-foreground/20"
+                          onClick={() =>
+                            setSelectedCountries((prev) => prev.filter((x) => x !== cId))
+                          }
+                        >
+                          <X className="size-3" />
+                        </button>
+                      </Badge>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -601,34 +722,90 @@ export default function TalentReachSendPage() {
               <Label className="text-sm text-muted-foreground">
                 {t("talentReach.regionLabel", { defaultValue: "省/州" })}
               </Label>
-              <Input
-                placeholder={t("talentReach.regionPlaceholder", {
-                  defaultValue: "输入省/州名称，按 Enter 添加",
-                })}
-                value={regionInput}
-                onChange={(e) => setRegionInput(e.target.value)}
-                onKeyDown={handleAddRegion}
-              />
+              <Popover open={regionPopoverOpen} onOpenChange={setRegionPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={regionPopoverOpen}
+                    className="w-full justify-between font-normal"
+                    disabled={geoLoading}
+                  >
+                    <span className="truncate text-muted-foreground">
+                      {geoLoading
+                        ? t("common.loading", { defaultValue: "加载中..." })
+                        : t("talentReach.regionPlaceholder", {
+                            defaultValue: "选择省/州...",
+                          })}
+                    </span>
+                    <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput
+                      placeholder={t("talentReach.searchRegionPlaceholder", {
+                        defaultValue: "搜索省/州...",
+                      })}
+                    />
+                    <CommandList>
+                      <CommandEmpty>
+                        {t("common.noResults", { defaultValue: "无匹配结果" })}
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {availableSubdivisions.map((sub) => {
+                          const label =
+                            (locale === "zh" ? sub.name_zh : sub.name) || sub.name || sub.name_zh;
+                          const isSelected = selectedRegions.includes(sub.id);
+                          return (
+                            <CommandItem
+                              key={sub.id}
+                              value={`${label} ${sub.countryName}`}
+                              onSelect={() => toggleRegion(sub.id)}
+                            >
+                              <Check
+                                className={`size-4 ${isSelected ? "opacity-100" : "opacity-0"}`}
+                              />
+                              <span>
+                                {label}
+                                <span className="ml-1 text-xs text-muted-foreground">
+                                  ({sub.countryName})
+                                </span>
+                              </span>
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               {selectedRegions.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {selectedRegions.map((r) => (
-                    <Badge
-                      key={r}
-                      variant="secondary"
-                      className="flex items-center gap-1 px-2.5 py-1"
-                    >
-                      <span className="text-sm">{r}</span>
-                      <button
-                        type="button"
-                        className="ml-0.5 inline-flex size-4 items-center justify-center rounded-full hover:bg-muted-foreground/20"
-                        onClick={() =>
-                          setSelectedRegions((prev) => prev.filter((x) => x !== r))
-                        }
+                  {selectedRegions.map((rId) => {
+                    const sub = availableSubdivisions.find((s) => s.id === rId);
+                    const label = sub
+                      ? (locale === "zh" ? sub.name_zh : sub.name) || sub.name || sub.name_zh
+                      : rId;
+                    return (
+                      <Badge
+                        key={rId}
+                        variant="secondary"
+                        className="flex items-center gap-1 px-2.5 py-1"
                       >
-                        <X className="size-3" />
-                      </button>
-                    </Badge>
-                  ))}
+                        <span className="text-sm">{label}</span>
+                        <button
+                          type="button"
+                          className="ml-0.5 inline-flex size-4 items-center justify-center rounded-full hover:bg-muted-foreground/20"
+                          onClick={() =>
+                            setSelectedRegions((prev) => prev.filter((x) => x !== rId))
+                          }
+                        >
+                          <X className="size-3" />
+                        </button>
+                      </Badge>
+                    );
+                  })}
                 </div>
               )}
             </div>
