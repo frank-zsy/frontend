@@ -250,11 +250,9 @@ export default function ProfilePage() {
     setProvidersLoading(true);
     try {
       const { data: providersData } = await api.get('/auth/social/providers');
-      // 仅展示 GitHub 与 AtomGit；其它后端虽配置保留，但前端不再作为可绑定平台暴露
-      const allowed = new Set(['github', 'atomgit']);
-      const items: SocialProviderItem[] = (providersData?.providers ?? []).filter(
-        (p: SocialProviderItem) => allowed.has(p.provider),
-      );
+      // 可绑定平台与可登录平台解耦：后端已按 KEY/SECRET 是否配置返回全部可绑定平台，
+      // 此处不再限制为登录用的 GitHub / AtomGit，避免其它已配置平台看不到绑定按钮。
+      const items: SocialProviderItem[] = providersData?.providers ?? [];
       setAvailableProviders(items);
       setProvidersLoaded(true);
     } catch (error) {
@@ -440,7 +438,7 @@ export default function ProfilePage() {
       <div
         key={rowKey}
         className={cn(
-          'group grid min-w-0 gap-3 rounded-xl border p-3 transition-colors duration-150 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center',
+          'group grid min-w-0 gap-3 rounded-xl border p-2.5 transition-colors duration-150 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center',
           conn.is_connected
             ? 'border-border bg-secondary/20 hover:bg-secondary/35'
             : 'border-border bg-secondary/25 hover:bg-secondary/40',
@@ -449,7 +447,7 @@ export default function ProfilePage() {
         <div className="flex min-w-0 items-center gap-3 text-sm">
           <div
             className={cn(
-              'flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-card transition-colors duration-150',
+              'flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-card transition-colors duration-150',
               conn.is_connected
                 ? 'border-primary/20 text-primary'
                 : 'border-border text-muted-foreground',
@@ -846,25 +844,7 @@ export default function ProfilePage() {
             <DialogDescription className="text-foreground/70">{t('profile.addAccountDesc')}</DialogDescription>
           </DialogHeader>
           <div className="min-h-0 space-y-5 overflow-y-auto pr-1">
-            {/* 已绑定账号清单（与外部卡片一致的 login(id) 展示） */}
-            <section>
-              <h4 className="mb-2 text-sm font-semibold text-foreground/85">
-                {t('profile.boundAccountsHeading')}
-              </h4>
-              {socialConnections.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic">
-                  {t('profile.socialNotBound')}
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {socialConnections.map((conn) =>
-                    renderSocialConnectionRow(conn, { compact: true }),
-                  )}
-                </div>
-              )}
-            </section>
-
-            {/* 可绑定的 providers（全部可点，支持同一平台多次绑定） */}
+            {/* 可绑定的 providers（全部可点，支持同一平台多次绑定）——置于前，方便直接绑定 */}
             <section>
               <h4 className="mb-2 text-sm font-semibold text-foreground/85">
                 {t('profile.bindablePlatformsHeading')}
@@ -889,11 +869,11 @@ export default function ProfilePage() {
                         key={provider.provider}
                         type="button"
                         variant="outline"
-                        className="min-h-11 justify-between py-2.5"
+                        className="min-h-14 justify-between py-3"
                         onClick={() => handleSelectProviderToBind(provider.provider)}
                       >
-                        <span className="flex min-w-0 items-center gap-2">
-                          <span className="flex size-6 items-center justify-center rounded-full bg-muted shrink-0">
+                        <span className="flex min-w-0 items-center gap-3">
+                          <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-card">
                             {getSocialProviderIcon(provider.provider)}
                           </span>
                           <span className="truncate font-medium">{provider.name}</span>
@@ -907,6 +887,24 @@ export default function ProfilePage() {
                       </Button>
                     );
                   })}
+                </div>
+              )}
+            </section>
+
+            {/* 已绑定账号清单（置于后，用于解绑；与外部卡片一致的 login(id) 展示） */}
+            <section>
+              <h4 className="mb-2 text-sm font-semibold text-foreground/85">
+                {t('profile.boundAccountsHeading')}
+              </h4>
+              {socialConnections.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic">
+                  {t('profile.socialNotBound')}
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {socialConnections.map((conn) =>
+                    renderSocialConnectionRow(conn, { compact: true }),
+                  )}
                 </div>
               )}
             </section>
