@@ -281,6 +281,13 @@
     "noWorkExperience": "No work experience added",
     "education": "Education",
     "noEducation": "No education added",
+    "completionRewardHint": "Complete your profile to earn {{points}} universal gift points",
+    "completionRewardEarned": "Congratulations! You have earned {{points}} universal gift points",
+    "missingFields": "Missing: {{fields}}",
+    "fieldBirthDate": "Date of birth",
+    "fieldLocation": "Location",
+    "fieldWorkExperience": "Work experience",
+    "fieldEducation": "Education",
     "loadFailed": "Unable to load profile",
     "loadFailedMsg": "Failed to load profile"
   },

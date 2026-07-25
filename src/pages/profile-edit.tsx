@@ -281,8 +281,13 @@ export default function ProfileEditPage() {
         location_subdivision_id: values.location_subdivision_id || '',
         location_city_name: values.location_city_name || '',
       };
-      await api.patch('/me/profile', payload);
+      const response = await api.patch('/me/profile', payload);
       toast.success(t('profileEdit.profileUpdated'));
+      // Show reward toast if profile completion reward was granted
+      const rewardGranted = response.data?.profile_completion_reward_granted;
+      if (rewardGranted?.rewarded) {
+        toast.success(t('profile.completionRewardEarned', { points: rewardGranted.points }));
+      }
       navigate('/profile');
     } catch (error) {
       const apiError = getApiError(error);
@@ -323,10 +328,20 @@ export default function ProfileEditPage() {
         const { data } = await api.patch(`/me/work-experiences/${editingWork.id}`, payload);
         setWorkExperiences(prev => prev.map(w => w.id === editingWork.id ? data : w));
         toast.success(t('profileEdit.workExpUpdated'));
+        // Show reward toast if profile completion reward was granted
+        const rewardGranted = data?.profile_completion_reward_granted;
+        if (rewardGranted?.rewarded) {
+          toast.success(t('profile.completionRewardEarned', { points: rewardGranted.points }));
+        }
       } else {
         const { data } = await api.post('/me/work-experiences', payload);
         setWorkExperiences(prev => [...prev, data]);
         toast.success(t('profileEdit.workExpAdded'));
+        // Show reward toast if profile completion reward was granted
+        const rewardGranted = data?.profile_completion_reward_granted;
+        if (rewardGranted?.rewarded) {
+          toast.success(t('profile.completionRewardEarned', { points: rewardGranted.points }));
+        }
       }
       setWorkDialogOpen(false);
     } catch (error) {
@@ -379,10 +394,20 @@ export default function ProfileEditPage() {
         const { data } = await api.patch(`/me/educations/${editingEdu.id}`, payload);
         setEducations(prev => prev.map(e => e.id === editingEdu.id ? data : e));
         toast.success(t('profileEdit.eduExpUpdated'));
+        // Show reward toast if profile completion reward was granted
+        const rewardGranted = data?.profile_completion_reward_granted;
+        if (rewardGranted?.rewarded) {
+          toast.success(t('profile.completionRewardEarned', { points: rewardGranted.points }));
+        }
       } else {
         const { data } = await api.post('/me/educations', payload);
         setEducations(prev => [...prev, data]);
         toast.success(t('profileEdit.eduExpAdded'));
+        // Show reward toast if profile completion reward was granted
+        const rewardGranted = data?.profile_completion_reward_granted;
+        if (rewardGranted?.rewarded) {
+          toast.success(t('profile.completionRewardEarned', { points: rewardGranted.points }));
+        }
       }
       setEduDialogOpen(false);
     } catch (error) {

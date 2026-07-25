@@ -281,6 +281,13 @@
     "noWorkExperience": "暂未添加工作经历",
     "education": "教育背景",
     "noEducation": "暂未添加教育背景",
+    "completionRewardHint": "填写完整个人信息将获得 {{points}} 通用礼品积分",
+    "completionRewardEarned": "恭喜！您已获得 {{points}} 通用礼品积分",
+    "missingFields": "待完善：{{fields}}",
+    "fieldBirthDate": "出生日期",
+    "fieldLocation": "位置信息",
+    "fieldWorkExperience": "工作经历",
+    "fieldEducation": "教育经历",
     "loadFailed": "无法加载个人资料",
     "loadFailedMsg": "获取个人资料失败"
   },

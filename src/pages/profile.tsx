@@ -31,6 +31,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar'
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { Skeleton } from '@/app/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/app/components/ui/tooltip';
 import { cn } from '@/app/components/ui/utils';
 import {
   AlertDialog,
@@ -62,6 +63,12 @@ interface Profile {
   location_city_name?: string;
 }
 
+interface ProfileCompletionReward {
+  eligible: boolean;
+  reward_points: number;
+  missing_fields: string[];
+}
+
 interface SocialConnectionItem {
   provider: string;
   name: string;
@@ -79,6 +86,14 @@ interface SocialProviderItem {
   icon: string;
   start_url: string;
 }
+
+// Map missing field keys to i18n key suffixes
+const fieldKeyMap: Record<string, string> = {
+  location: 'Location',
+  birth_date: 'BirthDate',
+  work_experience: 'WorkExperience',
+  education: 'Education',
+};
 
 // 与落地页 platforms-section.tsx 保持一致，复用 OpenDigger OSS 提供的平台 logo
 // 文件名规则：https://oss.open-digger.cn/logos/{slug}.png
@@ -209,6 +224,7 @@ export default function ProfilePage() {
   const [disconnectingId, setDisconnectingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   // 添加社交账号弹窗状态
+  const [rewardInfo, setRewardInfo] = useState<ProfileCompletionReward | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [availableProviders, setAvailableProviders] = useState<SocialProviderItem[]>([]);
   const [providersLoading, setProvidersLoading] = useState(false);
@@ -225,6 +241,7 @@ export default function ProfilePage() {
       ]);
 
       setData(profileRes.data);
+      setRewardInfo(profileRes.data?.profile_completion_reward ?? null);
       setWorkExperiences(workRes.data?.items ?? []);
       setEducations(eduRes.data?.items ?? []);
       if (socialRes) {
@@ -608,12 +625,39 @@ export default function ProfilePage() {
         <div className="min-w-0 space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight text-balance">{t('profile.title')}</h1>
         </div>
-        <Button asChild className="min-h-11 w-full sm:w-auto">
-          <Link to="/profile/edit">
-            <Pencil className="size-4" aria-hidden="true" />
-            {t('profile.editProfile')}
-          </Link>
-        </Button>
+        <div className="flex items-center gap-3">
+          {/* Profile completion reward hint: shown when fields are missing and a reward is available */}
+          {rewardInfo && rewardInfo.reward_points > 0 && rewardInfo.missing_fields.length > 0 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-amber-600 border border-amber-200 cursor-default dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800">
+                  <Gift className="size-4" />
+                  <span className="text-sm font-medium">
+                    +{rewardInfo.reward_points}
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs text-pretty">
+                <p>{t('profile.completionRewardHint', { points: rewardInfo.reward_points })}</p>
+                {rewardInfo.missing_fields.length > 0 && (
+                  <p className="mt-1 text-xs opacity-75">
+                    {t('profile.missingFields', {
+                      fields: rewardInfo.missing_fields
+                        .map(f => t(`profile.field${fieldKeyMap[f]}`))
+                        .join(', ')
+                    })}
+                  </p>
+                )}
+              </TooltipContent>
+            </Tooltip>
+          )}
+          <Button asChild className="min-h-11 w-full sm:w-auto">
+            <Link to="/profile/edit">
+              <Pencil className="size-4" aria-hidden="true" />
+              {t('profile.editProfile')}
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <Card className="relative overflow-hidden border-primary/20 bg-card/95">
