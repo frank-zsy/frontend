@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import i18n from '@/i18n';
-import { Package, MapPin, ArrowLeft, Tag, CheckCircle } from 'lucide-react';
+import { Package, MapPin, ArrowLeft, Tag, CheckCircle, Wallet } from 'lucide-react';
 import api, { getApiError } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
@@ -47,6 +47,7 @@ interface UserBalance {
   gift: number;
   gift_no_tag: number;
   by_tag: Record<string, number>;
+  by_tag_names?: Record<string, string>;
 }
 
 interface ShopItemDetail {
@@ -78,6 +79,14 @@ interface RedemptionResponse {
   points_cost_at_redemption: number;
   created_at: string;
   coupon_code: string | null;
+}
+
+interface PaymentOption {
+  type: 'gift' | 'cash';
+  tag_slug: string | null;
+  tag_name: string | null;
+  balance: number;
+  sufficient: boolean;
 }
 
 function getStockLabel(stock: number | null, t: (key: string, options?: Record<string, unknown>) => string): { text: string; variant: 'default' | 'secondary' | 'destructive' } {
@@ -119,6 +128,7 @@ export default function ShopItemPage() {
   const [balance, setBalance] = useState<UserBalance | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
+  const [selectedPayment, setSelectedPayment] = useState<string>('');
   const [redeeming, setRedeeming] = useState(false);
   const [redeemed, setRedeemed] = useState(false);
   const [couponCode, setCouponCode] = useState<string | null>(null);
@@ -154,10 +164,23 @@ export default function ShopItemPage() {
     if (!item) return;
     setRedeeming(true);
     try {
-      const payload: { item_id: number; shipping_address_id?: number; lang: string } = {
+      const payload: {
+        item_id: number;
+        shipping_address_id?: number;
+        lang: string;
+        point_type: string;
+        tag_slug: string | null;
+      } = {
         item_id: item.id,
         lang: i18n.language === 'zh' ? 'zh' : 'en',
+        point_type: 'gift',
+        tag_slug: null,
       };
+      if (selectedPayment) {
+        const [type, ...tagParts] = selectedPayment.split(':');
+        payload.point_type = type;
+        payload.tag_slug = tagParts.length > 0 ? tagParts.join(':') : null;
+      }
       if (item.requires_shipping && selectedAddressId) {
         payload.shipping_address_id = Number(selectedAddressId);
       }
@@ -197,17 +220,62 @@ export default function ShopItemPage() {
   const stockInfo = getStockLabel(item.stock, t);
   const soldOut = item.stock === 0;
   const addresses = item.shipping_addresses ?? [];
-  const affordable = (() => {
+
+  // 计算可用的支付选项
+  const paymentOptions = (() => {
+    const options: PaymentOption[] = [];
+
+    // 带标签礼物积分（仅对 allowed_tags 商品可用）
     if (item.allowed_tags.length > 0) {
-      const tagBalance = item.allowed_tags.reduce(
-        (sum, tag) => sum + (balance.by_tag[tag.slug] || 0),
-        0,
-      );
-      return tagBalance + balance.gift_no_tag >= item.cost;
+      for (const tag of item.allowed_tags) {
+        const tagBalance = balance.by_tag[tag.slug] || 0;
+        options.push({
+          type: 'gift',
+          tag_slug: tag.slug,
+          tag_name: tag.name,
+          balance: tagBalance,
+          sufficient: tagBalance >= item.cost,
+        });
+      }
     }
-    return balance.gift >= item.cost;
+
+    // 通用礼物积分（对所有商品可用）
+    options.push({
+      type: 'gift',
+      tag_slug: null,
+      tag_name: null,
+      balance: balance.gift,
+      sufficient: balance.gift >= item.cost,
+    });
+
+    // 现金积分（对所有商品可用）
+    options.push({
+      type: 'cash',
+      tag_slug: null,
+      tag_name: null,
+      balance: balance.cash,
+      sufficient: balance.cash >= item.cost,
+    });
+
+    return options;
   })();
-  const canRedeem = !soldOut && affordable;
+
+  // 初始化默认支付选项（首次渲染时选第一个）
+  const paymentKey = (opt: PaymentOption) =>
+    opt.type + (opt.tag_slug ? `:${opt.tag_slug}` : '');
+
+  if (!selectedPayment && paymentOptions.length > 0) {
+    // 延迟设置，避免 SSR 不一致
+    setTimeout(() => setSelectedPayment(paymentKey(paymentOptions[0])), 0);
+  }
+
+  const currentPayment = paymentOptions.find(
+    opt => paymentKey(opt) === selectedPayment,
+  );
+  const canRedeem = !soldOut && (currentPayment?.sufficient ?? false);
+
+  // 当前支付方式的余额（用于展示）
+  const currentBalance = currentPayment?.balance ?? 0;
 
   // 兑换成功状态
   if (redeemed) {
@@ -255,29 +323,21 @@ export default function ShopItemPage() {
 
       {/* 商品信息 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* 商品大图 */}
-        <div className="aspect-square max-w-72 bg-muted rounded-xl flex items-center justify-center overflow-hidden mx-auto">
-          {item.image_detail_url ? (
-            <img
-              src={item.image_detail_url}
-              alt={getLocalizedField(item, 'name')}
-              className="w-full h-full object-cover rounded-xl"
-            />
-          ) : (
-            <Package className="size-24 text-muted-foreground/50" />
-          )}
-        </div>
-
-        {/* 商品详情 */}
+        {/* 左列：商品大图 + 付款信息 */}
         <div className="space-y-4">
-          <h1 className="text-2xl font-bold">{getLocalizedField(item, 'name')}</h1>
-          <div className={MARKDOWN_PROSE_CLASS}>
-            <ReactMarkdown>{getLocalizedField(item, 'description')}</ReactMarkdown>
+          <div className="aspect-square max-w-72 bg-muted rounded-xl flex items-center justify-center overflow-hidden mx-auto">
+            {item.image_detail_url ? (
+              <img
+                src={item.image_detail_url}
+                alt={getLocalizedField(item, 'name')}
+                className="w-full h-full object-cover rounded-xl"
+              />
+            ) : (
+              <Package className="size-24 text-muted-foreground/50" />
+            )}
           </div>
 
-          <Separator />
-
-          <div className="space-y-3">
+          <div className="max-w-72 mx-auto space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">{t('shop.requiredPoints')}</span>
               <span className="text-2xl font-bold text-primary">
@@ -290,8 +350,16 @@ export default function ShopItemPage() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">{t('shop.myPoints')}</span>
-              <span className="font-medium">{balance.gift.toLocaleString()}</span>
+              <span className="font-medium">{currentBalance.toLocaleString()}</span>
             </div>
+          </div>
+        </div>
+
+        {/* 右列：商品详情 + 兑换确认 */}
+        <div className="space-y-4">
+          <h1 className="text-2xl font-bold">{getLocalizedField(item, 'name')}</h1>
+          <div className={MARKDOWN_PROSE_CLASS}>
+            <ReactMarkdown>{getLocalizedField(item, 'description')}</ReactMarkdown>
           </div>
 
           {/* 标签限制 */}
@@ -309,110 +377,160 @@ export default function ShopItemPage() {
               </div>
             </>
           )}
-        </div>
-      </div>
 
-      {/* 兑换确认区 */}
-      {canRedeem && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">{t('shop.confirmRedeemTitle')}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* 收货地址选择 */}
-            {item.requires_shipping && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
+          {/* 兑换确认区 */}
+          {canRedeem && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">{t('shop.confirmRedeemTitle')}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* 支付方式选择 */}
+                <div className="space-y-3">
                   <Label className="flex items-center gap-2">
-                    <MapPin className="size-4" />
-                    {t('shop.shippingAddress')}
+                    <Wallet className="size-4" />
+                    {t('shop.paymentMethod')}
                   </Label>
-                  <Button asChild variant="link" size="sm" className="h-auto p-0">
-                    <Link to="/settings/addresses">{t('shop.manageAddress')}</Link>
-                  </Button>
+                  <RadioGroup
+                    value={selectedPayment}
+                    onValueChange={setSelectedPayment}
+                  >
+                    {paymentOptions.map((opt) => {
+                      const key = paymentKey(opt);
+                      let label = '';
+                      if (opt.type === 'gift' && opt.tag_slug) {
+                        label = t('shop.paymentGiftTagged', { tag: opt.tag_name ?? opt.tag_slug });
+                      } else if (opt.type === 'gift' && !opt.tag_slug) {
+                        label = t('shop.paymentGiftUntagged');
+                      } else {
+                        label = t('shop.paymentCash');
+                      }
+                      return (
+                        <div
+                          key={key}
+                          className="flex items-center justify-between rounded-lg border p-3 cursor-pointer hover:bg-accent/50 transition-colors"
+                          onClick={() => setSelectedPayment(key)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <RadioGroupItem value={key} id={`payment-${key}`} />
+                            <Label htmlFor={`payment-${key}`} className="cursor-pointer font-normal">
+                              <span className="font-medium">{label}</span>
+                            </Label>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">
+                              {t('shop.paymentBalance', { balance: opt.balance.toLocaleString() })}
+                            </span>
+                            {!opt.sufficient && (
+                              <Badge variant="destructive" className="text-xs">
+                                {t('shop.insufficientBalance')}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </RadioGroup>
                 </div>
 
-                {addresses.length === 0 ? (
-                  <div className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
-                    <p>{t('shop.noAddress')}</p>
-                    <Button asChild variant="link" size="sm" className="mt-1">
-                      <Link to="/settings/addresses">{t('shop.addAddress')}</Link>
-                    </Button>
-                  </div>
-                ) : (
-                  <RadioGroup
-                    value={selectedAddressId}
-                    onValueChange={setSelectedAddressId}
-                  >
-                    {addresses.map((addr) => (
-                      <div key={addr.id} className="flex items-start gap-3 rounded-lg border p-3">
-                        <RadioGroupItem value={String(addr.id)} id={`addr-${addr.id}`} className="mt-1" />
-                        <Label htmlFor={`addr-${addr.id}`} className="flex-1 cursor-pointer font-normal">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{addr.receiver_name}</span>
-                            <span className="text-muted-foreground">{addr.phone}</span>
-                            {addr.is_default && <Badge variant="secondary">{t('common.default')}</Badge>}
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {addr.province}{addr.city}{addr.district}{addr.address}
-                          </p>
-                        </Label>
+                {/* 收货地址选择 */}
+                {item.requires_shipping && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="flex items-center gap-2">
+                        <MapPin className="size-4" />
+                        {t('shop.shippingAddress')}
+                      </Label>
+                      <Button asChild variant="link" size="sm" className="h-auto p-0">
+                        <Link to="/settings/addresses">{t('shop.manageAddress')}</Link>
+                      </Button>
+                    </div>
+
+                    {addresses.length === 0 ? (
+                      <div className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
+                        <p>{t('shop.noAddress')}</p>
+                        <Button asChild variant="link" size="sm" className="mt-1">
+                          <Link to="/settings/addresses">{t('shop.addAddress')}</Link>
+                        </Button>
                       </div>
-                    ))}
-                  </RadioGroup>
+                    ) : (
+                      <RadioGroup
+                        value={selectedAddressId}
+                        onValueChange={setSelectedAddressId}
+                      >
+                        {addresses.map((addr) => (
+                          <div key={addr.id} className="flex items-start gap-3 rounded-lg border p-3">
+                            <RadioGroupItem value={String(addr.id)} id={`addr-${addr.id}`} className="mt-1" />
+                            <Label htmlFor={`addr-${addr.id}`} className="flex-1 cursor-pointer font-normal">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{addr.receiver_name}</span>
+                                <span className="text-muted-foreground">{addr.phone}</span>
+                                {addr.is_default && <Badge variant="secondary">{t('common.default')}</Badge>}
+                              </div>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {addr.province}{addr.city}{addr.district}{addr.address}
+                              </p>
+                            </Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                    )}
+                  </div>
                 )}
-              </div>
-            )}
 
-            {/* 兑换按钮 */}
-            <Separator />
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  className="w-full bg-green-600 hover:bg-green-700 text-white"
-                  disabled={item.requires_shipping && !selectedAddressId}
-                >
-                  {t('shop.confirmRedeem')}
+                {/* 兑换按钮 */}
+                <Separator />
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      className="w-full bg-green-600 hover:bg-green-700 text-white"
+                      disabled={item.requires_shipping && !selectedAddressId}
+                    >
+                      {t('shop.confirmRedeem')}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t('shop.confirmRedeemTitle')}</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {t('shop.confirmRedeemDesc', { cost: item.cost.toLocaleString(), name: getLocalizedField(item, 'name') })}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleRedeem}
+                        disabled={redeeming}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        {redeeming ? t('shop.redeeming') : t('common.confirm')}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 不可兑换提示 */}
+          {!canRedeem && (
+            <Card>
+              <CardContent className="py-6 text-center text-muted-foreground">
+                {soldOut ? (
+                  <p>{t('shop.soldOutHint')}</p>
+                ) : !currentPayment ? (
+                  <p>{t('shop.selectPayment')}</p>
+                ) : (
+                  <p>{t('shop.insufficientHint')}</p>
+                )}
+                <Button asChild variant="link" className="mt-2">
+                  <Link to="/shop">{t('shop.backToShop')}</Link>
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{t('shop.confirmRedeemTitle')}</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {t('shop.confirmRedeemDesc', { cost: item.cost.toLocaleString(), name: getLocalizedField(item, 'name') })}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleRedeem}
-                    disabled={redeeming}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    {redeeming ? t('shop.redeeming') : t('common.confirm')}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 不可兑换提示 */}
-      {!canRedeem && (
-        <Card>
-          <CardContent className="py-6 text-center text-muted-foreground">
-            {soldOut ? (
-              <p>{t('shop.soldOutHint')}</p>
-            ) : (
-              <p>{t('shop.insufficientHint')}</p>
-            )}
-            <Button asChild variant="link" className="mt-2">
-              <Link to="/shop">{t('shop.backToShop')}</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

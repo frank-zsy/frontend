@@ -297,7 +297,7 @@
     "totalPoints": "Total Points",
     "giftPointsDetails": "Gift Points Details",
     "cashPoints": "Cash Points",
-    "cashPointsTooltip": "Per current platform rules, every 10 points equal 1 CNY (or equivalent in other currencies).",
+    "cashPointsTooltip": "Per current platform rules, every 10 points equal 1 USD.",
     "giftPoints": "Gift Points",
     "noTag": "No Tag",
     "noGiftPoints": "No gift points",
@@ -439,9 +439,9 @@
     "minAmountTip": "Minimum withdrawal amount is 200 points",
     "minAmountError": "Withdrawal amount must be at least 200 points",
     "insufficientBalance": "Insufficient balance",
-    "cashPointsTooltip": "Per current platform rules, every 10 points equal 1 CNY (or equivalent in other currencies).",
-    "estimatedCash": "Estimated cash value: ¥{{amount}} CNY",
-    "internationalRateNote": "For overseas accounts, payouts are converted at 10 points = 1 CNY into the equivalent foreign currency (e.g. USD). The final amount is determined by the exchange rate on the payout date.",
+    "cashPointsTooltip": "Per current platform rules, every 10 points equal 1 USD.",
+    "estimatedCash": "Estimated cash value: ${{amount}} USD",
+    "internationalRateNote": "For overseas accounts, payouts are converted at 10 points = 1 USD. The final amount is determined by the exchange rate on the payout date.",
     "statusPending": "Pending",
     "statusApproved": "Approved",
     "statusCompleted": "Completed",
@@ -521,7 +521,14 @@
     "couponCodeReceived": "Coupon Code Issued",
     "couponCode": "Coupon Code",
     "checkMessage": "Please check your messages for the coupon code details",
-    "viewMessages": "View Messages"
+    "viewMessages": "View Messages",
+    "paymentMethod": "Payment Method",
+    "paymentGiftTagged": "{{tag}} Tagged Gift Points",
+    "paymentGiftUntagged": "Universal Gift Points",
+    "paymentCash": "Cash Points",
+    "paymentBalance": "Balance: {{balance}}",
+    "insufficientBalance": "Insufficient Balance",
+    "selectPayment": "Please select a payment method"
   },
   "redemptions": {
     "title": "Redemption History",
@@ -924,7 +931,8 @@
     "topNLabel": "Number of Developers",
     "topNPlaceholder": "Leave empty or -1 for all",
     "topNHint": "Up to 300,000 records can be returned.",
-    "topNAll": "All"
+    "topNAll": "All",
+    "pointsToUsdHint": "10 points ≈ 1 USD"
   },
   "profileEdit": {
     "title": "Edit Profile",

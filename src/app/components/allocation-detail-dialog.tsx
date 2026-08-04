@@ -298,6 +298,11 @@ export default function AllocationDetailDialog({
         ) : (
           <div className="flex flex-col gap-4 overflow-hidden">
             {/* 概要信息 */}
+            {/* 10 points = 1 USD hint */}
+            <p className="text-xs text-muted-foreground text-center">
+              {t('pointAllocation.pointsToUsdHint')}
+            </p>
+
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 rounded-md border p-3 bg-muted/30">
               <InfoItem
                 label={t("allocationDetail.status.label")}

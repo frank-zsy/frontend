@@ -40,7 +40,23 @@ export function PointsBalanceCard({
               <Wallet className="size-6 text-primary" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">{t('points.totalPoints')}</p>
+              <div className="flex items-center gap-1">
+                <p className="text-sm text-muted-foreground">{t('points.totalPoints')}</p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label={t('points.cashPointsTooltip')}
+                      className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:bg-secondary hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <HelpCircle className="size-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-sm text-pretty">
+                    {t('points.cashPointsTooltip')}
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <p className="text-4xl font-bold tracking-tight">
                 {balance.total.toLocaleString()}
               </p>
@@ -58,20 +74,6 @@ export function PointsBalanceCard({
               <div>
                 <div className="flex items-center gap-1">
                   <p className="text-xs text-muted-foreground">{t('points.cashPoints')}</p>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        aria-label={t('points.cashPointsTooltip')}
-                        className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:bg-secondary hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        <HelpCircle className="size-3.5" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-sm text-pretty">
-                      {t('points.cashPointsTooltip')}
-                    </TooltipContent>
-                  </Tooltip>
                 </div>
                 <p className="text-xl font-semibold text-chart-2">
                   {balance.cash.toLocaleString()}

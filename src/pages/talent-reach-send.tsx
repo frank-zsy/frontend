@@ -164,9 +164,10 @@ export default function TalentReachSendPage() {
 
   // ─── Derived ───────────────────────────────────────────
 
-  const filteredPools = pools.filter(
-    (p) => p.point_type === "cash" || (p.point_type === "gift" && p.tag === null)
-  );
+  // All available pools are usable (any type, tagged or untagged, owned by
+  // the user or an organization they manage). The API already filters pools
+  // with a zero balance.
+  const filteredPools = pools.filter((p) => p.available_balance > 0);
   const selectedPool = selectedPoolIndex !== null ? filteredPools[selectedPoolIndex] : null;
   const canQuery = selectedTags.length > 0 || selectedLanguages.length > 0;
   const insufficientBalance =
@@ -375,6 +376,9 @@ export default function TalentReachSendPage() {
         countries: selectedCountries,
         regions: selectedRegions,
         point_type: selectedPool.point_type,
+        tag_slug: selectedPool.source_selector.tag_slug,
+        owner_type: selectedPool.source_selector.owner_type,
+        owner_slug: selectedPool.source_selector.owner_slug,
       };
       if (topNEnabled && topN.trim()) {
         body.top_n = Number(topN);
@@ -932,7 +936,9 @@ export default function TalentReachSendPage() {
                         {p.owner_name} -{" "}
                         {p.point_type === "cash"
                           ? t("talentReach.cashPoints", { defaultValue: "现金积分" })
-                          : t("talentReach.giftPoints", { defaultValue: "礼物积分" })}{" "}
+                          : p.tag
+                            ? `${t("talentReach.giftPoints", { defaultValue: "礼物积分" })} (${p.tag.name})`
+                            : t("talentReach.giftPoints", { defaultValue: "礼物积分" })}{" "}
                         - {t("talentReach.balance", { defaultValue: "余额" })}:{" "}
                         {p.available_balance.toLocaleString()}
                       </SelectItem>

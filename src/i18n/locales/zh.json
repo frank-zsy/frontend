@@ -297,7 +297,7 @@
     "totalPoints": "总积分",
     "giftPointsDetails": "礼物积分明细",
     "cashPoints": "现金积分",
-    "cashPointsTooltip": "按当前平台规则，每 10 积分等值 1 元人民币（或等值其他货币）。",
+    "cashPointsTooltip": "按当前平台规则，每 10 积分等值 1 美元。",
     "giftPoints": "礼物积分",
     "noTag": "无标签",
     "noGiftPoints": "暂无礼物积分",
@@ -439,9 +439,9 @@
     "minAmountTip": "最低提现金额为 200 积分",
     "minAmountError": "提现金额不能少于 200 积分",
     "insufficientBalance": "余额不足",
-    "cashPointsTooltip": "按当前平台规则，每 10 积分等值 1 元人民币（或等值其他货币）。",
-    "estimatedCash": "预计可兑换现金：¥{{amount}} CNY",
-    "internationalRateNote": "提现至海外账户时，将按 10 积分 = 1 CNY 折算为等额外币（如 USD）支付，最终金额以打款日汇率为准。",
+    "cashPointsTooltip": "按当前平台规则，每 10 积分等值 1 美元。",
+    "estimatedCash": "预计可兑换现金：${{amount}} USD",
+    "internationalRateNote": "提现至海外账户时，将按 10 积分 = 1 美元支付，最终金额以打款日汇率为准。",
     "statusPending": "提交中",
     "statusApproved": "已审核",
     "statusCompleted": "已发放",
@@ -521,7 +521,14 @@
     "couponCodeReceived": "兑换码已发放",
     "couponCode": "兑换码",
     "checkMessage": "请到站内信查看兑换码详情",
-    "viewMessages": "查看站内信"
+    "viewMessages": "查看站内信",
+    "paymentMethod": "支付方式",
+    "paymentGiftTagged": "{{tag}} 标签礼物积分",
+    "paymentGiftUntagged": "通用礼物积分",
+    "paymentCash": "现金积分",
+    "paymentBalance": "余额：{{balance}}",
+    "insufficientBalance": "余额不足",
+    "selectPayment": "请选择支付方式"
   },
   "redemptions": {
     "title": "兑换记录",
@@ -924,7 +931,8 @@
     "topNLabel": "返回开发者数量",
     "topNPlaceholder": "留空或填 -1 表示全部",
     "topNHint": "最多返回 30 万条记录。",
-    "topNAll": "全部"
+    "topNAll": "全部",
+    "pointsToUsdHint": "10 积分 ≈ 1 美元"
   },
   "profileEdit": {
     "title": "编辑资料",

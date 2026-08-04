@@ -333,7 +333,7 @@ export default function PointAllocationPage() {
     endMonth;
 
   // 前端接管积分计算：base_points = contribution_score * contribution_to_points_ratio
-  const contributionToPointsRatio = previewData?.contribution_to_points_ratio ?? 300;
+  const contributionToPointsRatio = previewData?.contribution_to_points_ratio ?? 100;
 
   /** 理论积分总量：所有贡献者的 floor(contribution_score * ratio) 之和 */
   const theoreticalTotal = useMemo(() => {
@@ -547,7 +547,7 @@ export default function PointAllocationPage() {
       );
       setPreviewData(data);
       // 设置滑块默认值
-      const ratio = data.contribution_to_points_ratio ?? 300;
+      const ratio = data.contribution_to_points_ratio ?? 100;
       const computedTheoreticalTotal = data.preview.reduce(
         (sum, r) => sum + Math.floor(r.contribution_score * ratio),
         0,
@@ -1182,7 +1182,10 @@ export default function PointAllocationPage() {
 
                       <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
                         <div>
-                          <p className="text-xs text-muted-foreground">{t('pointAllocation.calculatedPoints')}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {t('pointAllocation.calculatedPoints')}
+                            <span className="ml-1 cursor-help" title={t('pointAllocation.pointsToUsdHint')}>ⓘ</span>
+                          </p>
                           <p className="mt-1 font-semibold tabular-nums">
                             {(computedBasePoints.get(key) ?? 0).toLocaleString()}
                           </p>
@@ -1237,7 +1240,10 @@ export default function PointAllocationPage() {
                       <TableHead>{t('pointAllocation.status')}</TableHead>
                       <TableHead className="text-right">{t('pointAllocation.contribution')}</TableHead>
                       <TableHead className="text-center">{t('pointAllocation.topRepos')}</TableHead>
-                      <TableHead className="text-right">{t('pointAllocation.calculatedPoints')}</TableHead>
+                      <TableHead className="text-right">
+                        {t('pointAllocation.calculatedPoints')}
+                        <span className="ml-1 text-xs font-normal text-muted-foreground" title={t('pointAllocation.pointsToUsdHint')}>ⓘ</span>
+                      </TableHead>
                       <TableHead className="text-right">{t('pointAllocation.adjustedPoints')}</TableHead>
                       <TableHead className="text-center">{t('pointAllocation.action')}</TableHead>
                     </TableRow>
