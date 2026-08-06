@@ -67,6 +67,8 @@ interface ProfileCompletionReward {
   eligible: boolean;
   reward_points: number;
   missing_fields: string[];
+  highest_level: string | null;
+  highest_level_year: number | null;
 }
 
 interface SocialConnectionItem {
@@ -225,6 +227,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   // 添加社交账号弹窗状态
   const [rewardInfo, setRewardInfo] = useState<ProfileCompletionReward | null>(null);
+  const [rewardLoading, setRewardLoading] = useState(true);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [availableProviders, setAvailableProviders] = useState<SocialProviderItem[]>([]);
   const [providersLoading, setProvidersLoading] = useState(false);
@@ -241,7 +244,6 @@ export default function ProfilePage() {
       ]);
 
       setData(profileRes.data);
-      setRewardInfo(profileRes.data?.profile_completion_reward ?? null);
       setWorkExperiences(workRes.data?.items ?? []);
       setEducations(eduRes.data?.items ?? []);
       if (socialRes) {
@@ -289,6 +291,33 @@ export default function ProfilePage() {
   useEffect(() => {
     void loadProfile();
   }, [loadProfile]);
+
+  // 奖励信息独立异步获取：该接口需查询贡献度数据，耗时较长，不阻塞主资料加载
+  useEffect(() => {
+    let cancelled = false;
+    const loadRewardInfo = async () => {
+      setRewardLoading(true);
+      try {
+        const { data: rewardData } = await api.get('/me/profile-completion-reward');
+        if (!cancelled) {
+          setRewardInfo(rewardData ?? null);
+        }
+      } catch {
+        // 静默处理：奖励提示为增益信息，失败时不打扰用户
+        if (!cancelled) {
+          setRewardInfo(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setRewardLoading(false);
+        }
+      }
+    };
+    void loadRewardInfo();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Resolve the stored location IDs into a localized "Country / Subdivision / City" label.
   useEffect(() => {
@@ -627,7 +656,7 @@ export default function ProfilePage() {
         </div>
         <div className="flex items-center gap-3">
           {/* Profile completion reward hint: shown when fields are missing and a reward is available */}
-          {rewardInfo && rewardInfo.reward_points > 0 && rewardInfo.missing_fields.length > 0 && (
+          {!rewardLoading && rewardInfo && rewardInfo.reward_points > 0 && rewardInfo.missing_fields.length > 0 && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-amber-600 border border-amber-200 cursor-default dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800">
@@ -639,6 +668,15 @@ export default function ProfilePage() {
               </TooltipTrigger>
               <TooltipContent side="top" className="max-w-xs text-pretty">
                 <p>{t('profile.completionRewardHint', { points: rewardInfo.reward_points })}</p>
+                {rewardInfo.highest_level && (
+                  <p className="mt-1 text-xs opacity-75">
+                    {t('profile.completionRewardLevelHint', {
+                      year: rewardInfo.highest_level_year,
+                      level: rewardInfo.highest_level,
+                      points: rewardInfo.reward_points,
+                    })}
+                  </p>
+                )}
                 {rewardInfo.missing_fields.length > 0 && (
                   <p className="mt-1 text-xs opacity-75">
                     {t('profile.missingFields', {

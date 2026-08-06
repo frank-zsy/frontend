@@ -283,6 +283,7 @@
     "noEducation": "暂未添加教育背景",
     "completionRewardHint": "填写完整个人信息将获得 {{points}} 通用礼品积分",
     "completionRewardEarned": "恭喜！您已获得 {{points}} 通用礼品积分",
+    "completionRewardLevelHint": "由于您在 {{year}} 年最高达到过 {{level}} 级别，因此可以获得 {{points}} 积分",
     "missingFields": "待完善：{{fields}}",
     "fieldBirthDate": "出生日期",
     "fieldLocation": "位置信息",
