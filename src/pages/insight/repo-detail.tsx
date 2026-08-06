@@ -2,17 +2,21 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchItemMeta, fetchRepoTrendData } from './api/openDiggerTrend';
-import { getLabelDetailPath } from './domain/routes';
+import { fetchRepoCommunityOpenRankDetails } from './api/communityOpenRankDetails';
+import { getLabelDetailPath, getDeveloperDetailPath } from './domain/routes';
 import { getRepoUrlByPlatform, normalizeRepoPlatform } from './domain/repoPlatform';
 import { normalizeInsightLang } from './domain/lang';
 import { TrendChart } from './components/TrendChart';
+import { CommunityDeveloperOpenRank } from './components/CommunityDeveloperOpenRank';
 import { RepoPlatformIcon } from './components/RepoPlatformIcon';
 import { LeaderboardAvatar } from './components/LeaderboardAvatar';
 import { InsightDetailNav } from './components/InsightDetailNav';
 import { inferredDeveloperAvatarUrl } from './domain/communityOpenRankDetails';
 import { EMPTY_TREND, pickTrendMode } from './domain/trends';
 import { preprocessContributions } from './domain/geography';
+import { computeInitialTimeValue } from './domain/timeRange';
 import type { RepoTrendMap, MetaLabelEntry, ContributionRow, TrendSeries } from './types/api';
+import type { CommunityOpenRankDetailsFile } from './domain/communityOpenRankDetails';
 
 const ContributionMap = lazy(() =>
   import('./components/ContributionMap').then((module) => ({ default: module.ContributionMap })),
@@ -52,7 +56,9 @@ export default function RepoDetailPage() {
   const [metaLabels, setMetaLabels] = useState<MetaLabelEntry[]>([]);
   const [contributions, setContributions] = useState<ContributionRow[]>([]);
   const [trendMode, setTrendMode] = useState<'month' | 'year'>('month');
+  const [sectionTimeValue, setSectionTimeValue] = useState('');
   const [description, setDescription] = useState('');
+  const [communityOpenRankDetails, setCommunityOpenRankDetails] = useState<CommunityOpenRankDetailsFile | null>(null);
 
   const normalizedPlatform = normalizeRepoPlatform(platform || 'github');
 
@@ -65,15 +71,17 @@ export default function RepoDetailPage() {
     void (async () => {
       try {
         const item = { name: repoName, platform: normalizedPlatform, itemType: 'repo' };
-        const [itemMeta, repoTrend] = await Promise.all([
+        const [itemMeta, repoTrend, communityDetails] = await Promise.all([
           fetchItemMeta('repo', item),
           fetchRepoTrendData(normalizedPlatform, repoName),
+          fetchRepoCommunityOpenRankDetails(normalizedPlatform, repoName),
         ]);
         if (cancelled) return;
         setTrendData(repoTrend);
         setMetaLabels(itemMeta.labels);
         setContributions(itemMeta.contributions || []);
         setDescription(itemMeta.description || itemMeta.descriptionZh || '');
+        setCommunityOpenRankDetails(communityDetails);
       } catch {
         if (!cancelled) setError(t('insight.error'));
       } finally {
@@ -95,8 +103,6 @@ export default function RepoDetailPage() {
   const actPrev = getPrev(activityTrend);
   const devLatest = getLatest(participantsTrend);
   const devPrev = getPrev(participantsTrend);
-  const issuePrLatest = getLatest(issuePrTrend);
-  const issuePrPrev = getPrev(issuePrTrend);
 
   const timeKey = influenceTrend.months.length
     ? influenceTrend.months[influenceTrend.months.length - 1]
@@ -104,6 +110,14 @@ export default function RepoDetailPage() {
 
   const contributionRows = preprocessContributions(contributions);
   const showContributionMap = contributionRows.length > 0;
+  const showCommunityRank = Boolean(communityOpenRankDetails);
+
+  const handleTrendModeChange = (mode: 'month' | 'year') => {
+    if (sectionTimeValue) {
+      setSectionTimeValue(computeInitialTimeValue(mode, null, sectionTimeValue));
+    }
+    setTrendMode(mode);
+  };
   const detailNav = (
     <InsightDetailNav
       homeLabel={t('insight.detailBreadcrumbHome')}
@@ -199,34 +213,33 @@ export default function RepoDetailPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard
-          label={t('insight.detailStatOpenRankInfluence')}
+          icon="lightning-bolt"
+          iconBg="bg-chart-3/15"
+          iconColor="text-chart-3"
           value={infLatest}
           pct={getChangePct(infLatest, infPrev)}
           delta={getStatDelta(infLatest, infPrev)}
-          timeKey={timeKey}
+          subtitle={`${t('insight.detailStatOpenRankInfluence')}${timeKey ? ` (${timeKey})` : ''}`}
         />
         <StatCard
-          label={t('insight.detailStatActivity')}
+          icon="chart-line"
+          iconBg="bg-chart-1/15"
+          iconColor="text-chart-1"
           value={actLatest}
           pct={getChangePct(actLatest, actPrev)}
           delta={getStatDelta(actLatest, actPrev)}
-          timeKey={timeKey}
+          subtitle={`${t('insight.detailStatActivity')}${timeKey ? ` (${timeKey})` : ''}`}
         />
         <StatCard
-          label={t('insight.detailStatDeveloperCount')}
+          icon="account-group"
+          iconBg="bg-chart-2/15"
+          iconColor="text-chart-2"
           value={devLatest}
           pct={getChangePct(devLatest, devPrev)}
           delta={getStatDelta(devLatest, devPrev)}
-          timeKey={timeKey}
-        />
-        <StatCard
-          label={t('insight.detailChartIssuePrTrend')}
-          value={issuePrLatest}
-          pct={getChangePct(issuePrLatest, issuePrPrev)}
-          delta={getStatDelta(issuePrLatest, issuePrPrev)}
-          timeKey={timeKey}
+          subtitle={`${t('insight.detailStatDeveloperCount')}${timeKey ? ` (${timeKey})` : ''}`}
         />
       </div>
 
@@ -241,7 +254,7 @@ export default function RepoDetailPage() {
               type="button"
               aria-pressed={trendMode === 'month'}
               className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${trendMode === 'month' ? 'bg-secondary text-secondary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-              onClick={() => setTrendMode('month')}
+              onClick={() => handleTrendModeChange('month')}
             >
               {t('insight.detailTrendModeMonth')}
             </button>
@@ -249,7 +262,7 @@ export default function RepoDetailPage() {
               type="button"
               aria-pressed={trendMode === 'year'}
               className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${trendMode === 'year' ? 'bg-secondary text-secondary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-              onClick={() => setTrendMode('year')}
+              onClick={() => handleTrendModeChange('year')}
             >
               {t('insight.detailTrendModeYear')}
             </button>
@@ -307,6 +320,28 @@ export default function RepoDetailPage() {
               <ContributionMap contributions={contributions} />
             </Suspense>
           </div>
+        </div>
+      )}
+
+      {/* Community Developer OpenRank */}
+      {showCommunityRank && communityOpenRankDetails && (
+        <div className="rounded-xl border border-border bg-card p-6">
+          <CommunityDeveloperOpenRank
+            details={communityOpenRankDetails}
+            meta={null}
+            timeType={trendMode}
+            sectionTimeValue={sectionTimeValue || timeKey}
+            onSectionTimeChange={setSectionTimeValue}
+            onDeveloperClick={(devItem) => {
+              const platform = devItem.platform || 'github';
+              const login = (devItem.login ?? devItem.name ?? '').split('/')[0]?.trim() || '';
+              if (login) {
+                navigate(getDeveloperDetailPath(platform, login));
+              }
+            }}
+            lang={lang}
+            t={(k: string) => t(k)}
+          />
         </div>
       )}
     </div>
@@ -375,37 +410,53 @@ function ContributionTable({
   );
 }
 
+const statDeltaFormatter = new Intl.NumberFormat(undefined, {
+  maximumFractionDigits: 1,
+});
+
 /* --- Internal StatCard Component --- */
 function StatCard({
-  label,
+  icon,
+  iconBg,
+  iconColor,
   value,
   pct,
   delta,
-  timeKey,
+  subtitle,
 }: {
-  label: string;
+  icon: string;
+  iconBg: string;
+  iconColor: string;
   value: number;
   pct: string;
   delta: number | null;
-  timeKey: string;
+  subtitle: string;
 }) {
-  const isPositive = delta !== null && delta > 0;
-  const isNegative = delta !== null && delta < 0;
-
+  const up = parseFloat(pct) >= 0;
   return (
-    <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-      <div className="mb-1 text-xs text-muted-foreground">{label}</div>
-      <div className="text-2xl font-semibold text-foreground tabular-nums">
-        {value ? value.toLocaleString(undefined, { maximumFractionDigits: 1 }) : '0'}
+    <div className="rounded-xl border border-border bg-card px-5 pt-5 pb-4 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className={`flex size-9 flex-shrink-0 items-center justify-center rounded-lg ${iconBg}`}>
+            <svg className={`size-5 ${iconColor}`} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+              {icon === 'lightning-bolt' && <path d="M11 15H6l7-14v8h5l-7 14v-8z" />}
+              {icon === 'chart-line' && <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6h-6z" />}
+              {icon === 'account-group' && <path d="M12 5.5A3.5 3.5 0 0 1 15.5 9a3.5 3.5 0 0 1-3.5 3.5A3.5 3.5 0 0 1 8.5 9 3.5 3.5 0 0 1 12 5.5M5 8c.56 0 1.08.15 1.53.42-.15 1.43.27 2.85 1.13 3.96C7.16 13.34 6.16 14 5 14a3 3 0 0 1-3-3 3 3 0 0 1 3-3m14 0a3 3 0 0 1 3 3 3 3 0 0 1-3 3c-1.16 0-2.16-.66-2.66-1.62a5.54 5.54 0 0 0 1.13-3.96c.45-.27.97-.42 1.53-.42M5.5 18.25c0-2.07 2.91-3.75 6.5-3.75s6.5 1.68 6.5 3.75V20h-13v-1.75M0 20v-1.5c0-1.39 1.89-2.56 4.45-2.9-.59.68-.95 1.62-.95 2.65V20H0m24 0h-3.5v-1.75c0-1.03-.36-1.97-.95-2.65 2.56.34 4.45 1.51 4.45 2.9V20z" />}
+            </svg>
+          </div>
+          <div className="text-3xl font-bold tabular-nums text-card-foreground">{value.toLocaleString()}</div>
+        </div>
+        <div className={`flex items-center gap-1.5 text-sm font-medium ${up ? 'text-primary' : 'text-destructive'}`}>
+          <svg className="size-4 flex-shrink-0 self-center" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+            {up ? <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6h-6z" /> : <path d="M16 18l2.29-2.29-4.88-4.88-4 4L2 7.41 3.41 6l6 6 4-4 6.3 6.29L22 12v6h-6z" />}
+          </svg>
+          <div className="flex flex-col items-end leading-tight font-mono tabular-nums">
+            {delta != null ? <span>{statDeltaFormatter.format(Math.abs(delta))}</span> : null}
+            <span>{Math.abs(parseFloat(pct))}%</span>
+          </div>
+        </div>
       </div>
-      <div className="mt-1 flex items-center gap-2">
-        {delta !== null && (
-          <span className={`text-xs font-medium ${isPositive ? 'text-primary' : isNegative ? 'text-destructive' : 'text-muted-foreground'}`}>
-            {isPositive ? '↑' : isNegative ? '↓' : ''} {pct}%
-          </span>
-        )}
-        {timeKey && <span className="text-xs text-muted-foreground">{timeKey}</span>}
-      </div>
+      <div className="mt-1 text-sm text-muted-foreground">{subtitle}</div>
     </div>
   );
 }
