@@ -382,7 +382,7 @@ export default function ShopItemPage() {
       <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-10">
         {/* 左列：商品大图 + 详情描述 */}
         <div className="space-y-6">
-          <div className="aspect-square w-full max-w-xl bg-muted rounded-xl flex items-center justify-center overflow-hidden mx-auto">
+          <div className="aspect-square w-[70%] max-w-xl bg-muted rounded-xl flex items-center justify-center overflow-hidden mx-auto">
             {item.image_detail_url ? (
               <img
                 src={item.image_detail_url}
