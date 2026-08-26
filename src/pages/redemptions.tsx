@@ -16,6 +16,7 @@ interface RedemptionItem {
   name_en: string;
   image_card_url: string | null;
   image_detail_url: string | null;
+  allowed_tags?: Array<{ slug: string; name: string }> | null;
 }
 
 interface ShippingAddress {
@@ -31,6 +32,11 @@ interface Redemption {
   status: 'COMPLETED' | 'PENDING' | 'CANCELLED';
   shipping_address: ShippingAddress | null;
   created_at: string;
+  payment_lines?: Array<{
+    point_type: 'gift' | 'cash';
+    tag_slug: string | null;
+    amount: number;
+  }> | null;
 }
 
 interface RedemptionsResponse {
@@ -116,6 +122,8 @@ export default function RedemptionsPage() {
         <div className="space-y-4">
           {items.map((redemption) => {
             const statusBadge = getStatusBadge(redemption.status, t);
+            const paymentLines = redemption.payment_lines ?? [];
+            const allowedTags = redemption.item.allowed_tags ?? [];
             return (
               <div
                 key={redemption.id}
@@ -146,6 +154,22 @@ export default function RedemptionsPage() {
                     <span>{t('redemptions.costPoints', { amount: redemption.points_cost.toLocaleString() })}</span>
                     <span>{format(new Date(redemption.created_at), 'yyyy-MM-dd HH:mm')}</span>
                   </div>
+                  {paymentLines.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {t('redemptions.paymentBreakdown')}{' '}
+                      {paymentLines.map((line) => {
+                        const tag = allowedTags.find(
+                          option => option.slug === line.tag_slug,
+                        );
+                        const label = line.point_type === 'cash'
+                          ? t('shop.paymentCash')
+                          : line.tag_slug
+                            ? t('shop.paymentGiftTagged', { tag: tag?.name ?? line.tag_slug })
+                            : t('shop.paymentGiftUntagged');
+                        return `${label} ${line.amount.toLocaleString()}`;
+                      }).join(' + ')}
+                    </p>
+                  )}
                   {redemption.shipping_address && (
                     <p className="text-xs text-muted-foreground truncate">
                       {t('redemptions.shippingTo', { name: redemption.shipping_address.receiver_name, phone: redemption.shipping_address.phone, address: redemption.shipping_address.address })}
