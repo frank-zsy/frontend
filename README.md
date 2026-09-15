@@ -70,15 +70,7 @@ VITE_FRONTEND_SITE=cn npm run build -- --outDir dist-cn
 VITE_FRONTEND_SITE=global npm run build -- --outDir dist-global
 ```
 
-每次 Vite 构建只生成一套静态文件；上面两次构建分别把站点标记写入国内站和国际站产物。`publish.sh` 会自动执行这两次构建，并把它们发布到各自的 OSS Bucket。国内站的 OSS 配置必须显式提供，国际站沿用现有香港 OSS 默认配置：
-
-```bash
-CN_OSS_CONFIG="$HOME/.ossutilconfig-openshare-cn" \
-CN_OSS_BUCKET="oss://your-cn-frontend-bucket/" \
-./publish.sh
-```
-
-两个站点默认共用 `https://be.open-share.com/api/v1`；如需调整可传入 `API_BASE_URL`。仅验证双站点构建而不上传时，运行 `BUILD_ONLY=1 ./publish.sh`。
+每次 Vite 构建只生成一套静态文件；上面两次构建分别把站点标记写入国内站和国际站产物。生产发布时应将 `dist-cn` 和 `dist-global` 分别上传到对应站点。两个站点共用后端时，两次构建应设置相同的 `VITE_API_BASE_URL`。
 
 自动化检查：
 

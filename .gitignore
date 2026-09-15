@@ -81,6 +81,8 @@ storybook-static/
 tmp/
 temp/
 
+publish.sh
+
 .trae
 .vercel
 .env*
