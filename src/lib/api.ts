@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { buildLoginPath, currentRedirectTarget } from '@/lib/redirect';
+import { getFrontendSite } from '@/lib/frontend-site';
 
 interface TokenPair {
   access_token: string;
@@ -8,7 +9,10 @@ interface TokenPair {
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1',
-  headers: { 'Content-Type': 'application/json' },
+  headers: {
+    'Content-Type': 'application/json',
+    'X-OpenShare-Site': getFrontendSite(),
+  },
 });
 
 // 请求拦截器：附加 Bearer token
@@ -30,9 +34,11 @@ function refreshTokens(): Promise<TokenPair> {
     if (!refreshToken) return Promise.reject(new Error('No refresh token'));
 
     refreshPromise = axios
-      .post<TokenPair>(`${api.defaults.baseURL}/auth/refresh`, {
-        refresh_token: refreshToken,
-      })
+      .post<TokenPair>(
+        `${api.defaults.baseURL}/auth/refresh`,
+        { refresh_token: refreshToken },
+        { headers: { 'X-OpenShare-Site': getFrontendSite() } },
+      )
       .then(({ data }) => {
         localStorage.setItem('access_token', data.access_token);
         localStorage.setItem('refresh_token', data.refresh_token);
