@@ -33,7 +33,11 @@ function getCurrentYearMonth(): string {
   return `${y}-${m}`
 }
 
-export default function OverviewPage() {
+interface OverviewPageProps {
+  halfYear?: boolean
+}
+
+export default function OverviewPage({ halfYear = false }: OverviewPageProps) {
   const { t, i18n } = useTranslation()
   const isZh = i18n.language.startsWith('zh')
 
@@ -43,17 +47,18 @@ export default function OverviewPage() {
   const [meta, setMeta] = useState<OverviewMeta | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // meta 只需拉一次（summary / drillDownCountries）
+  // meta 只需按当前统计维度拉一次（summary / drillDownCountries）
   useEffect(() => {
     let cancelled = false
-    fetchOverviewMeta().then((data) => {
+    setMeta(null)
+    fetchOverviewMeta(halfYear).then((data) => {
       if (cancelled) return
       setMeta(data)
     })
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [halfYear])
 
   // influence 不支持下钻，切换到 influence 时回归世界视图
   useEffect(() => {
@@ -67,7 +72,7 @@ export default function OverviewPage() {
     let cancelled = false
     setLoading(true)
     const effectiveScope = dataset === 'influence' ? 'world' : geoScope
-    fetchOverviewDataset(dataset, effectiveScope).then((data) => {
+    fetchOverviewDataset(dataset, effectiveScope, halfYear).then((data) => {
       if (cancelled) return
       setPayload(data)
       setLoading(false)
@@ -75,7 +80,7 @@ export default function OverviewPage() {
     return () => {
       cancelled = true
     }
-  }, [dataset, geoScope])
+  }, [dataset, geoScope, halfYear])
 
   const handleDrillDown = useCallback((countryCode: string) => {
     if (dataset === 'influence') return

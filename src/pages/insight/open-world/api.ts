@@ -1,13 +1,17 @@
-import { OVERVIEW_DATA_BASE_URL } from './constants'
+import { OVERVIEW_DATA_BASE_URL, OVERVIEW_HALF_YEAR_DATA_BASE_URL } from './constants'
 import type { DatasetKey, GeoScope, OverviewDataset, OverviewMeta } from './types'
+
+function getOverviewDataBaseUrl(halfYear: boolean): string {
+  return halfYear ? OVERVIEW_HALF_YEAR_DATA_BASE_URL : OVERVIEW_DATA_BASE_URL
+}
 
 /**
  * 拉取 Overview meta.json，包含 summary（InfoBar 依赖）与 drillDownCountries。
  * 失败一律返回 null，由上层用本地兜底。
  */
-export async function fetchOverviewMeta(): Promise<OverviewMeta | null> {
+export async function fetchOverviewMeta(halfYear = false): Promise<OverviewMeta | null> {
   try {
-    const response = await fetch(`${OVERVIEW_DATA_BASE_URL}meta.json`)
+    const response = await fetch(`${getOverviewDataBaseUrl(halfYear)}meta.json`)
     if (!response.ok) return null
     const data: unknown = await response.json()
     if (!data || typeof data !== 'object') return null
@@ -29,10 +33,11 @@ export async function fetchOverviewMeta(): Promise<OverviewMeta | null> {
 export async function fetchOverviewDataset(
   dataset: DatasetKey,
   geoScope: GeoScope,
+  halfYear = false,
 ): Promise<OverviewDataset | null> {
   try {
     const path = geoScope === 'world' ? `${dataset}.json` : `${geoScope}/${dataset}.json`
-    const response = await fetch(`${OVERVIEW_DATA_BASE_URL}${path}`)
+    const response = await fetch(`${getOverviewDataBaseUrl(halfYear)}${path}`)
     if (!response.ok) return null
     const data: unknown = await response.json()
     if (!data || typeof data !== 'object') return null

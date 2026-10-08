@@ -1,6 +1,7 @@
 import type { DatasetKey, GeoScope } from './types'
 
 export const OVERVIEW_DATA_BASE_URL = 'https://selfoss.open-digger.cn/openshare/overview/'
+export const OVERVIEW_HALF_YEAR_DATA_BASE_URL = 'https://selfoss.open-digger.cn/openshare/overview_half_year/'
 
 export const DATASETS: DatasetKey[] = ['developers', 'contribution', 'influence']
 

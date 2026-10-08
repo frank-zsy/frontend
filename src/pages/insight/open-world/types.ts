@@ -48,7 +48,7 @@ export interface Leaderboard {
 export interface TrendItem {
   title: string
   title_zh: string
-  /** 最近 5 个完整自然年（动态推导） */
+  /** 最近 5 个统计年度；具体统计周期由当前数据源定义 */
   labels: string[]
   /** 与 labels 一一对应；缺数据用 0 占位 */
   values: number[]

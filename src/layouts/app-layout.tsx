@@ -255,7 +255,10 @@ export function AppLayout({ publicMode = false }: AppLayoutProps) {
                             <Link
                               to={resolveNavTo(child.path)}
                               onClick={() => setSidebarOpen(false)}
-                              className={childNavItemClass(location.pathname === child.path)}
+                              className={childNavItemClass(
+                                location.pathname === child.path ||
+                                location.pathname.startsWith(child.path + '/')
+                              )}
                             >
                               {t(child.labelKey)}
                             </Link>

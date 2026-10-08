@@ -73,6 +73,7 @@ export const router = createBrowserRouter([
         children: [
           { path: '/insight', element: <Navigate to="/insight/open-world" replace /> },
           { path: '/insight/open-world', element: lazyElement(<OverviewPage />) },
+          { path: '/insight/open-world/gosd', element: lazyElement(<OverviewPage halfYear />) },
         ],
       },
 
