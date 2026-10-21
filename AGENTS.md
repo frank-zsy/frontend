@@ -12,6 +12,7 @@ This is a Vite React/TypeScript frontend for `open-share-frontend`. The app entr
 - `npm run lint`: run ESLint with warnings treated as errors.
 - `npm run test`: run the Vitest suite once.
 - `npm run typecheck`: type-check the browser and Vite configuration projects.
+- `npm audit`: audit dependencies; required for local validation and before creating or updating a PR.
 
 Use Node.js 20.19+, 22.13+, or 24+. There is currently no configured `format` script.
 
@@ -23,11 +24,15 @@ Use TypeScript with React function components and keep `strict` compiler setting
 
 Vitest and Testing Library are configured with jsdom. Place tests near the related module using a clear `*.test.ts` or `*.test.tsx` pattern. Verify changes with the focused tests plus `npm run lint`, `npm run typecheck`, and `npm run build`; UI changes also need a focused manual check in the Vite app.
 
+Local validation must also include `npm audit`, using the Node.js version configured in CI. If the configured registry does not support the audit endpoint, use `npm audit --registry=https://registry.npmjs.org`. Registry or network errors do not count as passing. Fix audit failures or explicitly report the blocker; never skip the audit or weaken its failure threshold to claim success.
+
 ## Commit & Pull Request Guidelines
 
 Recent history uses short Conventional Commit-style messages, for example `feat: add withdrawals comments`, `fix: fix point preview`, and `refactor: change avatar priority`. Use a lowercase type (`feat`, `fix`, `refactor`, etc.) followed by a concise imperative summary.
 
 Pull requests should include a brief description, linked issue when applicable, screenshots or recordings for UI changes, and the verification performed. Keep PRs focused; avoid unrelated refactors or formatting churn.
+
+When fixing PR review comments, validate and push the fix under the existing commit authorization rules, then reply in each original review thread with the correction, fixing commit, and validation results. Resolve each addressed thread and re-read it to verify both the reply and resolved status before reporting completion. A code push or chat summary is not a substitute. Do not resolve concerns that remain unaddressed, and do not treat an outdated comment as automatically resolved.
 
 ## Agent-Specific Instructions
 
