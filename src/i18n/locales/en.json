@@ -347,6 +347,12 @@
     "mergedDebits": "{{count}} entries combined",
     "mergedDebitsTitle": "This row combines {{count}} entries of the same transaction type for one allocation, including debits or refunds from different point sources."
   },
+  "allocationSearch": {
+    "placeholder": "Search accounts (case-insensitive)",
+    "clear": "Clear account search",
+    "resultCount": "{{matched}} matching / {{total}} accounts",
+    "noResults": "No matching accounts"
+  },
   "allocationDetail": {
     "title": "Allocation Details",
     "titleWithId": "Allocation Details #{{id}}",
@@ -929,6 +935,7 @@
     "resetToRatioOne": "Reset to Ratio 1",
     "resetToRatioOneTip": "Reset the total allocation as close to ratio 1 as possible, and clear all manual adjustments for individual developers. If the pool balance is insufficient to cover the theoretical total, reset to the maximum achievable ratio.",
     "contributorList": "Contributor List",
+    "emptyPreview": "No accounts available for allocation in the selected scope",
     "username": "Username",
     "status": "Status",
     "contribution": "Contribution",
